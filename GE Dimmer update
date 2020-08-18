@@ -43,7 +43,7 @@ import groovy.transform.Field
 import groovy.json.JsonOutput
 
 metadata {
-	definition (name: "GE/Jasco Z-Wave Plus Dimmer Switch test", namespace: "mwave", author: "Chris Nussbaum") {
+	definition (name: "GE/Jasco Z-Wave Plus Dimmer Switch", namespace: "mwav3", author: "Chris Nussbaum") {
 		capability "Actuator"
 		capability "Button"
 		capability "Configuration"
