@@ -34,6 +34,10 @@
  *   Double-Tap Down   2        pressed
  *
  */
+
+import groovy.transform.Field
+import groovy.json.JsonOutput
+
 metadata {
 	definition (name: "GE/Jasco Z-Wave Plus On/Off Switch", namespace: "mwav3", author: "Chris Nussbaum") {
 		capability "Actuator"
@@ -145,6 +149,8 @@ def parse(String description) {
     } else {
         log.debug "Non-parsed event: ${description}"
     }
+    if (!device.currentValue("supportedButtonValues")) {
+        sendEvent(name: "supportedButtonValues", value:JsonOutput.toJson(["pushed"]), displayed:false)
     result    
 }
 
