@@ -29,7 +29,7 @@ import groovy.transform.Field
 import groovy.json.JsonOutput
 
 metadata {
-	definition(name: "GE Z-Wave Fan Controller", namespace: "mwav3", author: "Tim Grimley", ocfDeviceType: "oic.d.fan", genericHandler: "Z-Wave") {
+	definition(name: "GE Fan Switch", namespace: "mwav3", author: "Tim Grimley", ocfDeviceType: "oic.d.fan", genericHandler: "Z-Wave") {
 		capability "Switch Level"
 		capability "Switch"
 		capability "Fan Speed"
