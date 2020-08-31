@@ -35,7 +35,7 @@ import groovy.transform.Field
 import groovy.json.JsonOutput
 
 metadata {
-	definition (name: "GE Jasco Z-Wave Plus On Off New App", namespace: "mwav3", author: "Tim Grimley") {
+	definition (name: "GE Jasco Z-Wave Plus On Off Switch", namespace: "mwav3", author: "Tim Grimley") {
 		capability "Actuator"
 		capability "Button"
 		capability "Configuration"
