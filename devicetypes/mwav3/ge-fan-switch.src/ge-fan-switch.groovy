@@ -35,7 +35,7 @@ metadata {
 		capability "Fan Speed"
 		capability "Health Check"
 		capability "Actuator"
-		capability "refresh"
+		capability "Refresh"
 		capability "Sensor"
        		capability "Button"
 
