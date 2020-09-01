@@ -35,19 +35,18 @@ metadata {
 		capability "Fan Speed"
 		capability "Health Check"
 		capability "Actuator"
-		capability "Refresh"
+		capability "refresh"
 		capability "Sensor"
-        capability "Button"
+       		capability "Button"
 
 		command "low"
 		command "medium"
 		command "high"
 		command "raiseFanSpeed"
 		command "lowerFanSpeed"
-        command "doubleUp"
-        command "doubleDown"
+                command "doubleUp"
+                command "doubleDown"
 
-		fingerprint mfr: "0063", prod: "4944", model: "3034", deviceJoinName: "GE Fan" //GE In-Wall Smart Fan Control
 		fingerprint mfr: "0063", prod: "4944", model: "3131", deviceJoinName: "GE Fan" //GE In-Wall Smart Fan Control
 		fingerprint mfr: "0039", prod: "4944", model: "3131", deviceJoinName: "Honeywell Fan" //Honeywell Z-Wave Plus In-Wall Fan Speed Control
 	}
@@ -59,6 +58,36 @@ metadata {
 		status "99%": "command: 2003, payload: 63"
 	}
 
+	preferences {
+        
+        input "ledIndicator", "enum", title: "LED Indicator", description: "Turn LED indicator... ", required: false, options:["on": "When On", "off": "When Off", "never": "Never"], defaultValue: "off"
+        input "invertSwitch", "bool", title: "Invert Switch", description: "Invert switch? ", required: false
+        
+        input (
+            type: "paragraph",
+            element: "paragraph",
+            title: "Configure Association Groups:",
+            description: "Devices in association group 2 will receive Basic Set commands directly from the switch when it is turned on or off. Use this to control another device as if it was connected to this switch.\n\n" +
+                         "Devices in association group 3 will receive Basic Set commands directly from the switch when it is double tapped up or down.\n\n" +
+                         "Devices are entered as a comma delimited list of IDs in hexadecimal format."
+        )
+
+        input (
+            name: "requestedGroup2",
+            title: "Association Group 2 Members (Max of 5):",
+            type: "text",
+            required: false
+        )
+
+        input (
+            name: "requestedGroup3",
+            title: "Association Group 3 Members (Max of 4):",
+            type: "text",
+            required: false
+        )
+    }
+
+	
 	tiles(scale: 2) {
 		multiAttributeTile(name: "fanSpeed", type: "generic", width: 6, height: 4, canChangeIcon: true) {
 			tileAttribute("device.fanSpeed", key: "PRIMARY_CONTROL") {
@@ -137,6 +166,26 @@ def zwaveEvent(physicalgraph.zwave.commands.basicv1.BasicSet cmd) {
     }
 }
 
+def zwaveEvent(physicalgraph.zwave.commands.configurationv2.ConfigurationReport cmd) {
+    log.debug "---CONFIGURATION REPORT V2--- ${device.displayName} sent ${cmd}"
+	def name = ""
+    def value = ""
+    def reportValue = cmd.configurationValue[0]
+    switch (cmd.parameterNumber) {
+        case 3:
+            name = "indicatorStatus"
+            value = reportValue == 1 ? "when on" : reportValue == 2 ? "never" : "when off"
+            break
+        case 4:
+            name = "inverted"
+            value = reportValue == 1 ? "true" : "false"
+            break
+        default:
+            break
+    }
+	createEvent([name: name, value: value, displayed: false])
+}
+
 def zwaveEvent(physicalgraph.zwave.commands.switchmultilevelv1.SwitchMultilevelReport cmd) {
 	fanEvents(cmd)
 }
@@ -153,6 +202,71 @@ def zwaveEvent(physicalgraph.zwave.Command cmd) {
 	// Handles all Z-Wave commands we aren't interested in
 	log.debug "Unhandled: ${cmd.toString()}"
 	[:]
+}
+
+def configure() {
+    def cmds = []
+    // Get current config parameter values
+    cmds << zwave.configurationV2.configurationGet(parameterNumber: 3).format()
+    cmds << zwave.configurationV2.configurationGet(parameterNumber: 4).format()
+    
+    // Add the hub to association group 3 to get double-tap notifications
+    cmds << zwave.associationV2.associationSet(groupingIdentifier: 3, nodeId: zwaveHubNodeId).format()
+    cmds << zwave.associationV2.associationGet(groupingIdentifier: 3).format()
+    
+    delayBetween(cmds,500)
+}
+
+def updated() {
+    if (state.lastUpdated && now() <= state.lastUpdated + 3000) return
+    state.lastUpdated = now()
+
+	def nodes = []
+    def cmds = []
+
+	if (settings.requestedGroup2 != state.currentGroup2) {
+        nodes = parseAssocGroupList(settings.requestedGroup2, 2)
+        cmds << zwave.associationV2.associationRemove(groupingIdentifier: 2, nodeId: [])
+        cmds << zwave.associationV2.associationSet(groupingIdentifier: 2, nodeId: nodes)
+        cmds << zwave.associationV2.associationGet(groupingIdentifier: 2)
+        state.currentGroup2 = settings.requestedGroup2
+    }
+
+    if (settings.requestedGroup3 != state.currentGroup3) {
+        nodes = parseAssocGroupList(settings.requestedGroup3, 3)
+        cmds << zwave.associationV2.associationRemove(groupingIdentifier: 3, nodeId: [])
+        cmds << zwave.associationV2.associationSet(groupingIdentifier: 3, nodeId: nodes)
+        cmds << zwave.associationV2.associationGet(groupingIdentifier: 3)
+        state.currentGroup3 = settings.requestedGroup3
+    }
+    
+    switch (ledIndicator) {
+		case "on":
+			indicatorWhenOn()
+			break
+		case "off":
+			indicatorWhenOff()
+			break
+		case "never":
+			indicatorNever()
+			break
+		default:
+			indicatorWhenOff()
+			break
+	}
+    
+    switch (invertSwitch) {
+    	case "false":
+        	notInverted()
+            break
+        case "true":
+        	inverted()
+            break
+        default:
+        	notInverted()
+	}      
+
+	sendHubCommand(cmds.collect{ new physicalgraph.device.HubAction(it.format()) }, 500)
 }
 
 def fanEvents(physicalgraph.zwave.Command cmd) {
@@ -257,10 +371,6 @@ def max() {
 	setLevel(99)
 }
 
-def refresh() {
-	zwave.switchMultilevelV1.switchMultilevelGet().format()
-}
-
 def ping() {
 	refresh()
 }
@@ -292,18 +402,92 @@ def getFanSpeedFor4SpeedDevice(rawLevel) {
 	}
 }
 
-def has4Speeds() {
-	isLeviton4Speed()
-}
-
-def isLeviton4Speed() {
-	(zwaveInfo?.mfr == "001D" && zwaveInfo?.prod == "0038" && zwaveInfo?.model == "0002")
-}
-
 def doubleUp() {
 	sendEvent(name: "button", value: "pushed", data: [buttonNumber: 1], descriptionText: "Double-tap up (button 1) on $device.displayName", isStateChange: true, type: "digital")
 }
 
 def doubleDown() {
 	sendEvent(name: "button", value: "pushed", data: [buttonNumber: 2], descriptionText: "Double-tap down (button 2) on $device.displayName", isStateChange: true, type: "digital")
+}
+
+void indicatorWhenOn() {
+	sendEvent(name: "indicatorStatus", value: "when on", display: false)
+	sendHubCommand(new physicalgraph.device.HubAction(zwave.configurationV2.configurationSet(configurationValue: [1], parameterNumber: 3, size: 1).format()))
+}
+
+void indicatorWhenOff() {
+	sendEvent(name: "indicatorStatus", value: "when off", display: false)
+	sendHubCommand(new physicalgraph.device.HubAction(zwave.configurationV2.configurationSet(configurationValue: [0], parameterNumber: 3, size: 1).format()))
+}
+
+void indicatorNever() {
+	sendEvent(name: "indicatorStatus", value: "never", display: false)
+	sendHubCommand(new physicalgraph.device.HubAction(zwave.configurationV2.configurationSet(configurationValue: [2], parameterNumber: 3, size: 1).format()))
+}
+
+void inverted() {
+	sendEvent(name: "inverted", value: "inverted", display: false)
+	sendHubCommand(new physicalgraph.device.HubAction(zwave.configurationV2.configurationSet(configurationValue: [1], parameterNumber: 4, size: 1).format()))
+}
+
+void notInverted() {
+	sendEvent(name: "inverted", value: "not inverted", display: false)
+	sendHubCommand(new physicalgraph.device.HubAction(zwave.configurationV2.configurationSet(configurationValue: [0], parameterNumber: 4, size: 1).format()))
+}
+
+def poll() {
+	def cmds = []
+    cmds << zwave.switchBinaryV1.switchBinaryGet().format()
+	if (getDataValue("MSR") == null) {
+		cmds << zwave.manufacturerSpecificV1.manufacturerSpecificGet().format()
+	}
+	delayBetween(cmds,500)
+}
+
+def refresh() {
+	def cmds = []
+	cmds << zwave.switchBinaryV1.switchBinaryGet().format()
+    cmds << zwave.configurationV2.configurationGet(parameterNumber: 3).format()
+    cmds << zwave.configurationV2.configurationGet(parameterNumber: 4).format()
+    cmds << zwave.associationV2.associationGet(groupingIdentifier: 3).format()
+	if (getDataValue("MSR") == null) {
+		cmds << zwave.manufacturerSpecificV1.manufacturerSpecificGet().format()
+	}
+	delayBetween(cmds,500)
+}
+
+// Private Methods
+
+private parseAssocGroupList(list, group) {
+    def nodes = group == 2 ? [] : [zwaveHubNodeId]
+    if (list) {
+        def nodeList = list.split(',')
+        def max = group == 2 ? 5 : 4
+        def count = 0
+
+        nodeList.each { node ->
+            node = node.trim()
+            if ( count >= max) {
+                log.warn "Association Group ${group}: Number of members is greater than ${max}! The following member was discarded: ${node}"
+            }
+            else if (node.matches("\\p{XDigit}+")) {
+                def nodeId = Integer.parseInt(node,16)
+                if (nodeId == zwaveHubNodeId) {
+                	log.warn "Association Group ${group}: Adding the hub as an association is not allowed (it would break double-tap)."
+                }
+                else if ( (nodeId > 0) & (nodeId < 256) ) {
+                    nodes << nodeId
+                    count++
+                }
+                else {
+                    log.warn "Association Group ${group}: Invalid member: ${node}"
+                }
+            }
+            else {
+                log.warn "Association Group ${group}: Invalid member: ${node}"
+            }
+        }
+    }
+    
+    return nodes
 }
