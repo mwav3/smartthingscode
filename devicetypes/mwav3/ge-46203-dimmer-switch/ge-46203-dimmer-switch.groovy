@@ -35,7 +35,7 @@ import groovy.transform.Field
 import groovy.json.JsonOutput
 
 metadata {
-	definition (name: "GE 46203 Z-Wave Plus Dimmer Switch", namespace: "mwav3", author: "Tim Grimley") {
+	definition (name: "GE 46203 Dimmer Switch", namespace: "mwav3", author: "Tim Grimley") {
 		capability "Actuator"
 		capability "Button"
 		capability "Configuration"
