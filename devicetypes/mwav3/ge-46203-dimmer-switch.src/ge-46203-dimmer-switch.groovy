@@ -397,6 +397,7 @@ def updated() {
             break
         default:
         	notonoffswitch()
+	    break
 	}      
  
  switch (altexclusion) {
@@ -408,6 +409,7 @@ def updated() {
             break
         default:
         	allowAccexclusion()
+	    break
 	}   
     
     switch (ramplevel) {
@@ -419,6 +421,7 @@ def updated() {
             break
         default:
         	fastramp()
+	    break
 	}  
  
 	sendHubCommand(cmds.collect{ new physicalgraph.device.HubAction(it.format()) }, 500)
