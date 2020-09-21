@@ -38,6 +38,7 @@ metadata {
 		capability "Refresh"
 		capability "Sensor"
        		capability "Button"
+		capability "Polling"
 
 		command "low"
 		command "medium"
