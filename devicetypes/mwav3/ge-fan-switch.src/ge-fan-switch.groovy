@@ -403,6 +403,14 @@ def getFanSpeedFor4SpeedDevice(rawLevel) {
 	}
 }
 
+def has4Speeds() {
+	isLeviton4Speed()
+}
+
+def isLeviton4Speed() {
+	(zwaveInfo?.mfr == "001D" && zwaveInfo?.prod == "0038" && zwaveInfo?.model == "0002")
+}
+
 def doubleUp() {
 	sendEvent(name: "button", value: "pushed", data: [buttonNumber: 1], descriptionText: "Double-tap up (button 1) on $device.displayName", isStateChange: true, type: "digital")
 }
