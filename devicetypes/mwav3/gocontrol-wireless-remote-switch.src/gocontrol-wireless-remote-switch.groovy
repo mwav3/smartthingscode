@@ -28,7 +28,7 @@
  *
  *   ACTION          BUTTON#    BUTTON ACTION
  *   Single-Tap Up     1        pressed/held
- *   Single-Tap Up     2        pressed/held
+ *   Single-Tap Down     2        pressed/held
  *   Double-Tap Up     3        pressed/held
  *   Double-Tap Down   4        pressed/held   
  *
