@@ -1,4 +1,4 @@
- /*
+/*
  *  GoControl Wireless Remote Switch
  * 
  *  Contains code from https://github.com/nuttytree/Nutty-SmartThings/blob/master/devicetypes/nuttytree/ge-jasco-zwave-plus-on-off-switch.src/ge-jasco-zwave-plus-on-off-switch.groovy
@@ -92,8 +92,8 @@ metadata {
             description: "Switch must be awake prior to setting. Press any button on switch prior to setting any option on this page. Press any button again once or twice after changing for them to program to the switch."
        )
        
-        input "invertSwitch", "bool", title: "Invert Switch", description: "Reverse the top and bottom buttons?", required: false
-      	input "controlMode", "enum", title: "Control Mode (Default Both)", description: "Associaton and scene control... ", required: false, options:["both": "Send Both Scenes and Associations", "scene": "Send Scenes Only", "association": "Send Associations Only" ], defaultValue: "both"
+        input  "invertSwitch", "bool", title: "Invert Switch", description: "Invert switch? ", required: false 
+      	input  "controlMode", "enum", title: "Control Mode (Default Both)", description: "Associaton and scene control... ", required: false, options:["both": "Send Both Scenes and Associations", "scene": "Send Scenes Only", "association": "Send Associations Only" ], defaultValue: "both" 
       
       input (
             type: "paragraph",
@@ -271,6 +271,7 @@ def updated() {
             break
         default:
         	notInverted()
+            break
 	}   
     
     switch (controlMode) {
@@ -309,12 +310,12 @@ void controlAssociation() {
 
 void inverted() {
 	sendEvent(name: "inverted", value: "inverted", display: false)
-    sendHubCommand(new physicalgraph.device.HubAction(zwave.configurationV2.configurationSet(configurationValue: [1], parameterNumber: 4, size: 1).format()))
+    sendHubCommand(new physicalgraph.device.HubAction(zwave.configurationV1.configurationSet(configurationValue: [1], parameterNumber: 4, size: 1).format()))
 	}
 
 void notInverted() {
 	sendEvent(name: "inverted", value: "not inverted", display: false)
-    sendHubCommand(new physicalgraph.device.HubAction(zwave.configurationV2.configurationSet(configurationValue: [0], parameterNumber: 4, size: 1).format()))
+    sendHubCommand(new physicalgraph.device.HubAction(zwave.configurationV1.configurationSet(configurationValue: [0], parameterNumber: 4, size: 1).format()))
 }
 
 def initialize() {
