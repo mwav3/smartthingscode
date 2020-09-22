@@ -18,22 +18,26 @@
  *  for the specific language governing permissions and limitations under the License.
  *
  *	Author: Tim Grimley
- *	Date: 09/19/2020
+ *	Date: 09/22/2020
  *
  *	Changelog:
  *
- *  0.11 (08/31/2020) - Initial Release Updated to Work with New Smartthings App, support double tap and associations
+ *  0.11 (09/22/2020) - Initial Release Updated to Work with New Smartthings App, support double tap and associations
  *	
  *   Button Mappings:
  *
  *   ACTION          BUTTON#    BUTTON ACTION
- *   Single-Tap Up     1        pressed
- *   Single-Tap Up     2        pressed
- *   Double-Tap Up     3        pressed
- *   Double-Tap Down   4        pressed   
+ *   Single-Tap Up     1        pressed/held
+ *   Single-Tap Up     2        pressed/held
+ *   Double-Tap Up     3        pressed/held
+ *   Double-Tap Down   4        pressed/held   
  *
- *  Note - unresolved issue is central scene control still triggers on double tap, ie doubletap up does trigger button 3, but also triggers button 1.  
- *  Additional updates necessary to disregard single press on double taps
+ *  Note - Central scene control still triggers on any double tap, ie doubletap up does trigger button 3, but also triggers button 1.  
+ *  Preferences can be updated to only send association commands, which would support double tap button 3 and 4, but disable button 1 and 2 
+ *  from scene control and smartapp use. Single tap Button 1 and 2 could then be used to trigger zwave devices in association group 2 directly only.
+ *  Possible solution to use all buttons and differentiate control is to use Webcore and set up a condition to trigger after single tap, 
+ *  wait a few seconds, check for double tap, and trigger different actions based on whether double tap was detected or not
+ *
  */
 
 import groovy.transform.Field
@@ -50,15 +54,14 @@ metadata {
         capability "Refresh"
         
         attribute "inverted", "enum", ["inverted", "not inverted"]
+        attribute "controlled", "enum", ["both", "scene", "association"]
         
-        command "press1"
-        command "press2"
-        command "hold1"
-        command "hold2"
-        command "doubleUp"
-        command "doubleDown"
+        
         command "inverted"
         command "notInverted"
+        command "controlBoth"
+        command "controlScene"
+        command "controlAssociation"
 
 
 		fingerprint deviceId:"0x1801", inClusters:"0x5E, 0x86, 0x72, 0x5B, 0x85, 0x59, 0x73, 0x70, 0x80, 0x84, 0x5A, 0x7A", outClusters:"0x5B, 0x20"        
@@ -82,15 +85,23 @@ metadata {
 	}
     
     preferences {
-          input "invertSwitch", "bool", title: "Invert Switch", description: "Reverse the top and bottom buttons?", required: false
+       input (
+            type: "paragraph",
+            element: "paragraph",
+            title: "Instructions:",
+            description: "Switch must be awake prior to setting. Press any button on switch prior to setting any option on this page. Press any button again once or twice after changing for them to program to the switch."
+       )
+       
+        input "invertSwitch", "bool", title: "Invert Switch", description: "Reverse the top and bottom buttons?", required: false
+      	input "controlMode", "enum", title: "Control Mode (Default Both)", description: "Associaton and scene control... ", required: false, options:["both": "Send Both Scenes and Associations", "scene": "Send Scenes Only", "association": "Send Associations Only" ], defaultValue: "both"
       
       input (
             type: "paragraph",
             element: "paragraph",
             title: "Configure Association Groups:",
-            description: "Devices in association group 2 will receive Basic Set commands directly from the switch when it is turned on or off. Use this to control another device as if it was connected to this switch.\n\n" +
-                         "Devices in association group 3 will receive Basic Set commands directly from the switch when it is double tapped up or down.\n\n" +
-                         "Devices are entered as a comma delimited list of IDs in hexadecimal format."
+            description: "Devices in association group 2 will receive commands directly from the controller.  Press up or down for on off, hold up or hold down for brighten or dim. Use this to control another device as if it was connected to this switch.\n\n" +
+                         "Devices in association group 3 will receive commands directly from the controller when it is double tapped.  Press up or down twice for on off, press up twice and hold for brighten or down twice and hold to dim.\n\n" +
+                         "Devices are entered as a comma delimited list of IDs in hexadecimal format.  These will not work with send scenes only option, and will only work on other Zwave devices."
         )
 
         input (
@@ -131,14 +142,23 @@ def parse(String description) {
 }
 
 def zwaveEvent(physicalgraph.zwave.commands.basicv1.BasicSet cmd) {
-    log.debug "---BASIC SET V1--- ${device.displayName} sent ${cmd}"
+    log.debug "---Double Tap--- ${device.displayName} sent ${cmd}"
 	if (cmd.value == 255) {
     	createEvent(name: "button", value: "pushed", data: [buttonNumber: 3], descriptionText: "Double-tap up (button 3) on $device.displayName", isStateChange: true, type: "physical")
     }
 	else if (cmd.value == 0) {
     	createEvent(name: "button", value: "pushed", data: [buttonNumber: 4], descriptionText: "Double-tap down (button 4) on $device.displayName", isStateChange: true, type: "physical")
     }
-}
+ }
+
+ def zwaveEvent(physicalgraph.zwave.commands.switchmultilevelv3.SwitchMultilevelStartLevelChange cmd) {
+	 log.debug "---Double Tap and Hold--- ${device.displayName} sent ${cmd}"
+	if (cmd.startLevel == 0) {
+    	createEvent(name: "button", value: "held", data: [buttonNumber: 3], descriptionText: "Double-tap up and hold (button 3) on $device.displayName", isStateChange: true, type: "physical")     }
+	else if (cmd.startLevel == 255) {
+    	createEvent(name: "button", value: "held", data: [buttonNumber: 4], descriptionText: "Double-tap down and hold (button 4) on $device.displayName", isStateChange: true, type: "physical")
+    }
+ }
 
 
 def zwaveEvent(physicalgraph.zwave.commands.centralscenev1.CentralSceneNotification cmd) {
@@ -253,11 +273,40 @@ def updated() {
         	notInverted()
 	}   
     
+    switch (controlMode) {
+		case "both":
+			controlBoth()
+			break
+		case "association":
+			controlAssociation()
+			break
+		case "scene":
+			controlScene()
+			break
+		default:
+			controlBoth()
+			break
+	}
+    
     sendHubCommand(cmds.collect{ new physicalgraph.device.HubAction(it.format()) }, 500)
     
 }
 
-// need to update inverted to proper config values
+void controlBoth() {
+	sendEvent(name: "controlled", value: "both", displayed: false)
+	sendHubCommand(new physicalgraph.device.HubAction(zwave.configurationV1.configurationSet(configurationValue: [0], parameterNumber: 2, size: 1).format()))
+}
+
+void controlScene() {
+	sendEvent(name: "controlled", value: "scene", displayed: false)
+	sendHubCommand(new physicalgraph.device.HubAction(zwave.configurationV1.configurationSet(configurationValue: [1], parameterNumber: 2, size: 1).format()))
+}
+
+void controlAssociation() {
+	sendEvent(name: "controlled", value: "association", displayed: false)
+	sendHubCommand(new physicalgraph.device.HubAction(zwave.configurationV1.configurationSet(configurationValue: [2], parameterNumber: 2, size: 1).format()))
+}
+
 void inverted() {
 	sendEvent(name: "inverted", value: "inverted", display: false)
     sendHubCommand(new physicalgraph.device.HubAction(zwave.configurationV2.configurationSet(configurationValue: [1], parameterNumber: 4, size: 1).format()))
@@ -268,18 +317,12 @@ void notInverted() {
     sendHubCommand(new physicalgraph.device.HubAction(zwave.configurationV2.configurationSet(configurationValue: [0], parameterNumber: 4, size: 1).format()))
 }
 
-def doubleUp() {
-	sendEvent(name: "button", value: "pushed", data: [buttonNumber: 3], descriptionText: "Double-tap up (button 1) on $device.displayName", isStateChange: true, type: "digital")
-}
-
-def doubleDown() {
-	sendEvent(name: "button", value: "pushed", data: [buttonNumber: 4], descriptionText: "Double-tap down (button 2) on $device.displayName", isStateChange: true, type: "digital")
-}
-
-
 def initialize() {
 	sendEvent(name: "numberOfButtons", value: 4, displayed: false)
     sendEvent(name: "button", value: "pushed", data: [buttonNumber: 1], displayed: false)
+    
+     if (!device.currentValue("supportedButtonValues")) {
+        sendEvent(name: "supportedButtonValues", value:JsonOutput.toJson(["pushed","held"]), displayed:false) }
    
     
 }
