@@ -158,14 +158,16 @@ def zwaveEvent(physicalgraph.zwave.commands.associationv2.AssociationReport cmd)
 
 def zwaveEvent(physicalgraph.zwave.commands.basicv1.BasicSet cmd) {
 	log.debug "---BASIC SET V1--- ${device.displayName} sent ${cmd}"
-    fanEvents(cmd)
     if (cmd.value == 255) {
     	createEvent(name: "button", value: "pushed", data: [buttonNumber: 1], descriptionText: "Double-tap up (button 1) on $device.displayName", isStateChange: true, type: "physical")
     }
 	else if (cmd.value == 0) {
     	createEvent(name: "button", value: "pushed", data: [buttonNumber: 2], descriptionText: "Double-tap down (button 2) on $device.displayName", isStateChange: true, type: "physical")
     }
-}
+    else {
+    fanEvents(cmd)
+    }
+   }
 
 def zwaveEvent(physicalgraph.zwave.commands.configurationv2.ConfigurationReport cmd) {
     log.debug "---CONFIGURATION REPORT V2--- ${device.displayName} sent ${cmd}"
