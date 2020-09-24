@@ -29,12 +29,16 @@
  *  Button Mappings:
  *
  *   ACTION          BUTTON#    BUTTON ACTION
- *   Single-Tap Up     1	pressed
- *   Single-Tap Down   2	pressed
- *   Double-Tap Up     3        pressed
- *   Double-Tap Down   4        pressed
- *   Triple-Tap Up     5        pressed
- *   Triple-Tap Down   6        pressed
+ *   Double-Tap Up     1        pressed
+ *   Double-Tap Down   2        pressed
+ *   Triple-Tap Up     3        pressed
+ *   Triple-Tap Down   4        pressed
+ *   Single-Tap Up     5	pressed/held
+ *   Single-Tap Down   6	pressed/held
+ *
+ *   Note - made single tap buttons 5 and 6 so this wouldn't require existing automations to need reprogramming for the double tap which was 1 and 2
+ *   in all prior versions of this switch and code.  These buttons will be rarely used as they trigger with the switch being turned on or off, but some 
+ *   may find a use for them so they are exposed.  Central scene supports held events only for single tap (buttons 5 and 6).
  *
  */
 
@@ -104,9 +108,9 @@ metadata {
         input "altexclusion", "bool", title: "Prevent Accidental Exclusion", description: "Prevent accidental exclusion? ", required: false
         input "ramplevel", "bool", title: "Ramp Level When Setting", description: "Dim up/down slowly by command? ", required: false
     	input "mindim", "number", title: "Minimum Dimmer Threshold (1-99) Default 1", description: "Minimum Dimmer ", required: false, range: "1..99"
-	input "maxbright", "number", title: "Maximum Brightness Threshold (1-99) Default 99", description: "Maximum Brightness ", required: false, range: "1..99"
+		input "maxbright", "number", title: "Maximum Brightness Threshold (1-99) Default 99", description: "Maximum Brightness ", required: false, range: "1..99"
         input "defaultbright", "number", title: "Default Brightness at Switch- 0 for previous", description: "Default Level ", required: false, range: "0..99"
-		
+		input "forceupdate", "bool", title: "Force Settings Update/Refresh?", description: "Toggle to force settings update", requied: false
        
        input (
             type: "paragraph",
@@ -174,7 +178,7 @@ def parse(String description) {
     	sendEvent(name: "numberOfButtons", value: 6, displayed: false)
     }
     if (!device.currentValue("supportedButtonValues")) {
-        sendEvent(name: "supportedButtonValues", value:JsonOutput.toJson(["pushed"]), displayed:false)
+        sendEvent(name: "supportedButtonValues", value:JsonOutput.toJson(["pushed","held"]), displayed:false)
     }
     result    
 }
@@ -291,20 +295,26 @@ def zwaveEvent(physicalgraph.zwave.commands.centralscenev1.CentralSceneNotificat
     // scene number is 1 for up 2 for down
     upordown = (cmd.sceneNumber) as Integer
     
-    // single taps
-    if(cmd.keyAttributes == 0){
+    // double taps
+    if(cmd.keyAttributes == 3){
     	createEvent(name: "button", value: "pushed", data: [buttonNumber: upordown], descriptionText: "$device.displayName button $upordown was pressed", isStateChange: true)
     }
-    // double taps 
-    else if(cmd.keyAttributes == 3){
-    	def doubletap = ( upordown + 2 )
-		createEvent(name: "button", value: "pushed", data: [buttonNumber: doubletap], descriptionText: "$device.displayName button $doubletap was pressed", isStateChange: true)
-    }
-    // triple taps
+    
+    // triple taps 
     else if(cmd.keyAttributes == 4){
-    	def triptap = ( upordown + 4 )
+    	def triptap = ( upordown + 2 )
 		createEvent(name: "button", value: "pushed", data: [buttonNumber: triptap], descriptionText: "$device.displayName button $triptap was pressed", isStateChange: true)
-    }    
+    }
+    // single taps
+    else if(cmd.keyAttributes == 0){
+    	def singletap = ( upordown + 4 )
+		createEvent(name: "button", value: "pushed", data: [buttonNumber: singletap], descriptionText: "$device.displayName button $singletap was pressed", isStateChange: true)
+    }   
+    // single tap hold
+    else if(cmd.keyAttributes == 2){
+    	def singlehold = ( upordown + 4 )
+        cmd.createEvent(name: "button", value: "held", data: [buttonNumber: singlehold], descriptionText: "$device.displayName button $singlehold was pressed", isStateChange: true)
+    }
     
     else return
  
@@ -430,7 +440,7 @@ def updated() {
 	}  
  
 	sendEvent(name: "numberOfButtons", value: 6, displayed: false)
-    sendEvent(name: "supportedButtonValues", value:JsonOutput.toJson(["pushed"]), displayed:false) 
+    sendEvent(name: "supportedButtonValues", value:JsonOutput.toJson(["pushed","held"]), displayed:false) 
 	
 	sendHubCommand(cmds.collect{ new physicalgraph.device.HubAction(it.format()) }, 500)
    
@@ -605,7 +615,7 @@ def levelDown() {
 
 def initialize() {
 	sendEvent(name: "numberOfButtons", value: 6, displayed: false)
-    sendEvent(name: "supportedButtonValues", value:JsonOutput.toJson(["pushed"]), displayed:false)     
+    sendEvent(name: "supportedButtonValues", value:JsonOutput.toJson(["pushed","held"]), displayed:false)     
 }
 
 // Private Methods
