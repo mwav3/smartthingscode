@@ -20,15 +20,18 @@
  *
  *	Changelog:
  *
+ *	0.12 (09/23/2020) - Support added for double tap and hold, added code to make sure button values updated 
  *  0.11 (08/31/2020) - Initial Release Updated to Work with New Smartthings App
  *  
  *
  *   Button Mappings:
  *
  *   ACTION          BUTTON#    BUTTON ACTION
- *   Double-Tap Up     1        pressed
- *   Double-Tap Down   2        pressed
- *
+ *   Double-Tap Up     1        pressed/held
+ *   Double-Tap Down   2        pressed/held
+ * 
+ *   Note - For double tap hold, tap twice and keep pressed up or down after second tap
+ *   If held does not appear as an option, update any device preference (ie indicator) to add the "held" button value
  */
 
 import groovy.transform.Field
@@ -149,8 +152,11 @@ def parse(String description) {
     } else {
         log.debug "Non-parsed event: ${description}"
     }
+    
     if (!device.currentValue("supportedButtonValues")) {
-        sendEvent(name: "supportedButtonValues", value:JsonOutput.toJson(["pushed"]), displayed:false)}
+        sendEvent(name: "supportedButtonValues", value:JsonOutput.toJson(["pushed","held"]), displayed:false)
+    }
+    
     result    
 }
 
@@ -170,7 +176,7 @@ def zwaveEvent(physicalgraph.zwave.commands.basicv1.BasicReport cmd) {
 }
 
 def zwaveEvent(physicalgraph.zwave.commands.basicv1.BasicSet cmd) {
-    log.debug "---BASIC SET V1--- ${device.displayName} sent ${cmd}"
+    log.debug "---Double Tap--- ${device.displayName} sent ${cmd}"
 	if (cmd.value == 255) {
     	createEvent(name: "button", value: "pushed", data: [buttonNumber: 1], descriptionText: "Double-tap up (button 1) on $device.displayName", isStateChange: true, type: "physical")
     }
@@ -179,11 +185,23 @@ def zwaveEvent(physicalgraph.zwave.commands.basicv1.BasicSet cmd) {
     }
 }
 
+def zwaveEvent(physicalgraph.zwave.commands.switchmultilevelv3.SwitchMultilevelStartLevelChange cmd) {
+	 log.debug "---Double Tap and Hold--- ${device.displayName} sent ${cmd}"
+	if (cmd.startLevel == 0) {
+    	createEvent(name: "button", value: "held", data: [buttonNumber: 1], descriptionText: "Double-tap up and hold (button 1) on $device.displayName", isStateChange: true, type: "physical")    
+        }
+	else if (cmd.startLevel == 255) {
+    	createEvent(name: "button", value: "held", data: [buttonNumber: 2], descriptionText: "Double-tap down and hold (button 2) on $device.displayName", isStateChange: true, type: "physical")
+    }
+ }
+
+
 def zwaveEvent(physicalgraph.zwave.commands.associationv2.AssociationReport cmd) {
 	log.debug "---ASSOCIATION REPORT V2--- ${device.displayName} sent groupingIdentifier: ${cmd.groupingIdentifier} maxNodesSupported: ${cmd.maxNodesSupported} nodeId: ${cmd.nodeId} reportsToFollow: ${cmd.reportsToFollow}"
     if (cmd.groupingIdentifier == 3) {
     	if (cmd.nodeId.contains(zwaveHubNodeId)) {
         	createEvent(name: "numberOfButtons", value: 2, displayed: false)
+            sendEvent(name: "supportedButtonValues", value:JsonOutput.toJson(["pushed","held"]), displayed:false)
         }
         else {
 			sendHubCommand(new physicalgraph.device.HubAction(zwave.associationV2.associationSet(groupingIdentifier: 3, nodeId: zwaveHubNodeId).format()))
@@ -303,8 +321,13 @@ def updated() {
         default:
         	notInverted()
 	}      
-
+	
+    sendEvent(name: "numberOfButtons", value: 2, displayed: false)
+    sendEvent(name: "supportedButtonValues", value:JsonOutput.toJson(["pushed","held"]), displayed:false) 
+     
 	sendHubCommand(cmds.collect{ new physicalgraph.device.HubAction(it.format()) }, 500)
+    
+    log.debug "---Preferences Updated--- ${device.displayName} sent ${cmds}"
 }
 
 void indicatorWhenOn() {
@@ -359,6 +382,7 @@ def refresh() {
 		cmds << zwave.manufacturerSpecificV1.manufacturerSpecificGet().format()
 	}
 	delayBetween(cmds,500)
+     
 }
 
 def on() {
@@ -374,6 +398,13 @@ def off() {
 		zwave.switchBinaryV1.switchBinaryGet().format()
 	], 100)
 }
+
+def initialize() {
+	sendEvent(name: "numberOfButtons", value: 2, displayed: false)
+    sendEvent(name: "supportedButtonValues", value:JsonOutput.toJson(["pushed","held"]), displayed:false) 
+      
+}
+
 
 // Private Methods
 
