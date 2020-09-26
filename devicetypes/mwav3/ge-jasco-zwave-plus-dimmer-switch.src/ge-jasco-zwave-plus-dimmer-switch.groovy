@@ -4,7 +4,9 @@
  *  Contains code from https://github.com/nuttytree/Nutty-SmartThings/blob/master/devicetypes/nuttytree/ge-jasco-zwave-plus-dimmer-switch.src/ge-jasco-zwave-plus-dimmer-switch.groovy
  *
  *  Copyright 2020 Chris Nussbaum, Tim Grimley
+ *  Contributors - Evan Hunter
  *  Thanks Chris for the original copy of this great code!
+ *  Thanks Evan for additional parameter configs for on/off and minimum dimmer
  *
  *  Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except
  *  in compliance with the License. You may obtain a copy of the License at:
@@ -20,6 +22,7 @@
  *
  *	Changelog:
  *
+ *  0.20 (09/26/2020) - Added settings to force button value updates, configuration for on/off only, minimum dim level
  *  0.19 (08/29/2020) - Additional rewrite moved config settings to preferences to work with new app various changes
  *  0.18 (08/19/2020) - Initial Release Old handler Updated to add compatibility to new Smart lighting app 
  *  
@@ -49,6 +52,8 @@ metadata {
 		capability "Switch Level"
 
 		attribute "inverted", "enum", ["inverted", "not inverted"]
+        attribute "switchMode", "enum", ["modeDimmer", "modeSwitch"]
+		attribute "minimumDim", "number"
         attribute "zwaveSteps", "number"
         attribute "zwaveDelay", "number"
         attribute "manualSteps", "number"
@@ -60,6 +65,9 @@ metadata {
         command "doubleDown"
         command "inverted"
         command "notInverted"
+        command "modeDimmer"
+		command "modeSwitch"
+		command "setMinimumDim"
         command "levelUp"
         command "levelDown"
         command "setZwaveSteps"
@@ -104,11 +112,15 @@ metadata {
        
        input "ledIndicator", "enum", title: "LED Indicator", description: "Turn LED indicator... ", required: false, options:["on": "When On", "off": "When Off", "never": "Never"], defaultValue: "off"
         input "invertSwitch", "bool", title: "Invert Switch", description: "Invert switch? ", required: false
+        input "switchMode", "bool", title: "Make Dimmer On/Off Only", description: "On/Off Only? ", required: false
+        input "forceupdate", "bool", title: "Force Settings Update/Refresh?", description: "Toggle to force settings update", requied: false
 		input "zwaveSteps", "number", title: "Z-Wave Dim Steps (1-99) Default 1", description: "Z-Wave Dim Steps ", required: false, range: "1..99"
 		input "zwaveDelay", "number", title: "Z-Wave Dim Delay (10ms Increments, 3-255) Default 3", description: "Z-Wave Dim Delay (10ms Increments) ", required: false, range: "3..255"
 		input "manualSteps", "number", title: "Manual Dim Steps (1-99) Default 1", description: "Manual Dim Steps ", required: false, range: "1..99"
 		input "manualDelay", "number", title: "Manual Dim Delay (10ms Increments, 1-255) Default 3", description: "Manual Dim Delay (10ms Increments) ", required: false, range: "1..255"
-		// No one uses these
+		input "minimumDim", "number", title: "Minimim Dim Level (1-99) Default 1", description: "%", required: false, range: "1..99"		
+		
+        // No one uses these
         // input "allonSteps", "number", title: "All-On/All-Off Dim Steps (1-99)", description: "All-On/All-Off Dim Steps ", required: false, range: "1..99"
 		// input "allonDelay", "number", title: "All-On/All-Off Dim Delay (10ms Increments, 1-255)", description: "All-On/All-Off Dim Delay (10ms Increments) ", required: false, range: "1..255"
 
@@ -289,6 +301,16 @@ def zwaveEvent(physicalgraph.zwave.commands.basicv1.BasicSet cmd) {
     }
 }
 
+def zwaveEvent(physicalgraph.zwave.commands.switchmultilevelv3.SwitchMultilevelStartLevelChange cmd) {
+	 log.debug "---Double Tap and Hold--- ${device.displayName} sent ${cmd}"
+	if (cmd.startLevel == 0) {
+    	createEvent(name: "button", value: "held", data: [buttonNumber: 3], descriptionText: "Double-tap up and hold (button 3) on $device.displayName", isStateChange: true, type: "physical")     }
+	else if (cmd.startLevel == 255) {
+    	createEvent(name: "button", value: "held", data: [buttonNumber: 4], descriptionText: "Double-tap down and hold (button 4) on $device.displayName", isStateChange: true, type: "physical")
+    }
+ }
+
+
 def zwaveEvent(physicalgraph.zwave.commands.associationv2.AssociationReport cmd) {
 	log.debug "---ASSOCIATION REPORT V2--- ${device.displayName} sent groupingIdentifier: ${cmd.groupingIdentifier} maxNodesSupported: ${cmd.maxNodesSupported} nodeId: ${cmd.nodeId} reportsToFollow: ${cmd.reportsToFollow}"
     state.group3 = "1,2"
@@ -342,6 +364,14 @@ def zwaveEvent(physicalgraph.zwave.commands.configurationv2.ConfigurationReport 
             name = "allDelay"
             value = reportValue
             break
+        case 16:
+            name = "switchMode"
+            value = reportValue == 1 ? "true" : "false"
+            break
+        case 20:
+            name = "minimumDim"
+            value = reportValue
+            break
         default:
             break
     }
@@ -383,6 +413,8 @@ def configure() {
     cmds << zwave.configurationV2.configurationGet(parameterNumber: 10).format()
     cmds << zwave.configurationV2.configurationGet(parameterNumber: 11).format()
     cmds << zwave.configurationV2.configurationGet(parameterNumber: 12).format()
+    cmds << zwave.configurationV2.configurationGet(parameterNumber: 16).format()
+    cmds << zwave.configurationV2.configurationGet(parameterNumber: 20).format()
     
     // Add the hub to association group 3 to get double-tap notifications
     cmds << zwave.associationV2.associationSet(groupingIdentifier: 3, nodeId: zwaveHubNodeId).format()
@@ -429,6 +461,12 @@ def updated() {
     
     }
     
+    if (settings.minimumDim != null) {
+	def minimumDim = Math.max(Math.min(minimumDim, 99), 1)
+	sendHubCommand(new physicalgraph.device.HubAction(zwave.configurationV2.configurationSet(scaledConfigurationValue: minimumDim, parameterNumber: 20, size: 1).format()))
+	sendEvent(name: "minimumDim", value: minimumDim, displayed: false)  
+    }
+    
          
 	if (settings.requestedGroup2 != state.currentGroup2) {
         nodes = parseAssocGroupList(settings.requestedGroup2, 2)
@@ -470,10 +508,27 @@ def updated() {
             break
         default:
         	notInverted()
+            break
+	}      
+    
+    switch (switchMode) {
+    	case "false":
+        	modeDimmer()
+            break
+        case "true":
+        	modeSwitch()
+            break
+        default:
+        	modeDimmer()
+            break
 	}      
  
+	sendEvent(name: "numberOfButtons", value: 2, displayed: false)
+    sendEvent(name: "supportedButtonValues", value:JsonOutput.toJson(["pushed"]), displayed:false) 
+	
 	sendHubCommand(cmds.collect{ new physicalgraph.device.HubAction(it.format()) }, 500)
    
+   log.debug "---Preferences Updated--- ${device.displayName} sent ${cmds}"
    
    }
 
@@ -507,6 +562,16 @@ void inverted() {
 void notInverted() {
 	sendEvent(name: "inverted", value: "not inverted", display: false)
     sendHubCommand(new physicalgraph.device.HubAction(zwave.configurationV2.configurationSet(configurationValue: [0], parameterNumber: 4, size: 1).format()))
+}
+
+void modeDimmer() {
+	sendEvent(name: "switchMode", value: "modeDimmer", display: false)
+    sendHubCommand(new physicalgraph.device.HubAction(zwave.configurationV2.configurationSet(configurationValue: [0], parameterNumber: 16, size: 1).format()))
+}
+
+void modeSwitch() {
+	sendEvent(name: "switchMode", value: "modeSwitch", display: false)
+    sendHubCommand(new physicalgraph.device.HubAction(zwave.configurationV2.configurationSet(configurationValue: [1], parameterNumber: 16, size: 1).format()))
 }
 
 def doubleUp() {
@@ -577,6 +642,8 @@ def refresh() {
     cmds << zwave.configurationV2.configurationGet(parameterNumber: 10).format()
     cmds << zwave.configurationV2.configurationGet(parameterNumber: 11).format()
     cmds << zwave.configurationV2.configurationGet(parameterNumber: 12).format()
+    cmds << zwave.configurationV2.configurationGet(parameterNumber: 16).format()
+    cmds << zwave.configurationV2.configurationGet(parameterNumber: 20).format()
     cmds << zwave.associationV2.associationGet(groupingIdentifier: 3).format()
 	if (getDataValue("MSR") == null) {
 		cmds << zwave.manufacturerSpecificV1.manufacturerSpecificGet().format()
@@ -588,8 +655,6 @@ def on() {
 	def cmds = []
     cmds << zwave.basicV1.basicSet(value: 0xFF).format()
    	cmds << zwave.switchMultilevelV2.switchMultilevelGet().format()
-    // broken delay calculation
-    // def delay = ((device.currentValue("zwaveSteps") * device.currentValue("zwaveDelay")).longValue() * 1000) + 500
     def numberofzsteps = (100 / (device.currentValue("zwaveSteps")))
     def calcdelay = (numberofzsteps * (10*(device.currentValue("zwaveDelay")))).longValue()
     def delay = Math.max(Math.min(calcdelay, 10000), 1000)
@@ -600,9 +665,6 @@ def off() {
 	def cmds = []
     cmds << zwave.basicV1.basicSet(value: 0x00).format()
    	cmds << zwave.switchMultilevelV2.switchMultilevelGet().format()
-   // broken delay calculation
-    // def delay = ((device.currentValue("zwaveSteps") * device.currentValue("zwaveDelay")).longValue() * 1000) + 500
-    // def delay = ((((100-(device.currentValue("zwaveSteps"))) * (10*(device.currentValue("zwaveDelay")))).longValue()) + 500)
     def numberofzsteps = (100 / (device.currentValue("zwaveSteps")))
     def calcdelay = (numberofzsteps * (10*(device.currentValue("zwaveDelay")))).longValue()
     def delay = Math.max(Math.min(calcdelay, 10000), 1000)
@@ -610,8 +672,40 @@ def off() {
 }
 
 def setLevel(value) {
-	// new way
-	def valueaux = value as Integer
+	//revised to account for minimumdim
+	
+    def valueaux = value as Integer
+	def level = Math.max(Math.min(valueaux, 99), 0)
+    def curmindim = (device.currentValue("minimumDim"))
+    
+    if (curmindim == null) {
+    	curmindim = 1
+    }
+    
+    // adjust levels below minimum dim to the minimum dim level except for 0
+    if ((level < curmindim) && (level != 0)) {
+    	log.debug "${device.displayName} - level set command of $level below minimum dim of $curmindim, adjusting level to minimum dim"
+        level = curmindim       
+    }
+    
+    if (level > 0) {
+	    sendEvent(name: "switch", value: "on")
+	 } else {
+		sendEvent(name: "switch", value: "off")
+	 }
+
+     sendEvent(name: "level", value: level, unit: "%")       	
+       
+     def numberofzsteps = (100 / (device.currentValue("zwaveSteps")))
+     def calcdelay = (numberofzsteps * (level / 100 ) * (10*(device.currentValue("zwaveDelay")))).longValue()
+     def delay = Math.max(Math.min(calcdelay, 5000), 1000)
+     delayBetween ([
+    	zwave.basicV1.basicSet(value: level).format(),
+        zwave.switchMultilevelV1.switchMultilevelGet().format()
+     ], delay )
+
+     
+/*     def valueaux = value as Integer
 	def level = Math.max(Math.min(valueaux, 99), 0)
 	if (level > 0) {
 	    sendEvent(name: "switch", value: "on")
@@ -626,18 +720,8 @@ def setLevel(value) {
     	zwave.basicV1.basicSet(value: level).format(),
         zwave.switchMultilevelV1.switchMultilevelGet().format()
      ], delay )
+*/    
     
-    // stock dth way
-    
-    // log.debug "setLevel >> value: $value"
-	// def valueaux = value as Integer
-	// def level = Math.max(Math.min(valueaux, 99), 0)
-	// if (level > 0) {
-	//	sendEvent(name: "switch", value: "on")
-	// } else {
-	//	sendEvent(name: "switch", value: "off")
-	// }
-	// delayBetween([zwave.basicV1.basicSet(value: level).format(), zwave.switchMultilevelV1.switchMultilevelGet().format()], 5000)
 }
 
 def setLevel(value, duration) {
