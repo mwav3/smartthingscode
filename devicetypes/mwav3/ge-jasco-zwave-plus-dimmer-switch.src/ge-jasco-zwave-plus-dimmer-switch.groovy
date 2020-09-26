@@ -301,16 +301,6 @@ def zwaveEvent(physicalgraph.zwave.commands.basicv1.BasicSet cmd) {
     }
 }
 
-def zwaveEvent(physicalgraph.zwave.commands.switchmultilevelv3.SwitchMultilevelStartLevelChange cmd) {
-	 log.debug "---Double Tap and Hold--- ${device.displayName} sent ${cmd}"
-	if (cmd.startLevel == 0) {
-    	createEvent(name: "button", value: "held", data: [buttonNumber: 3], descriptionText: "Double-tap up and hold (button 3) on $device.displayName", isStateChange: true, type: "physical")     }
-	else if (cmd.startLevel == 255) {
-    	createEvent(name: "button", value: "held", data: [buttonNumber: 4], descriptionText: "Double-tap down and hold (button 4) on $device.displayName", isStateChange: true, type: "physical")
-    }
- }
-
-
 def zwaveEvent(physicalgraph.zwave.commands.associationv2.AssociationReport cmd) {
 	log.debug "---ASSOCIATION REPORT V2--- ${device.displayName} sent groupingIdentifier: ${cmd.groupingIdentifier} maxNodesSupported: ${cmd.maxNodesSupported} nodeId: ${cmd.nodeId} reportsToFollow: ${cmd.reportsToFollow}"
     state.group3 = "1,2"
