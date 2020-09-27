@@ -33,8 +33,8 @@
  *   Double-Tap Down   2        pressed
  *   Triple-Tap Up     3        pressed
  *   Triple-Tap Down   4        pressed
- *   Single-Tap Up     5	pressed/held
- *   Single-Tap Down   6	pressed/held
+ *   Single-Tap Up     5		pressed/held
+ *   Single-Tap Down   6		pressed/held
  *
  *   Note - made single tap buttons 5 and 6 so this wouldn't require existing automations to need reprogramming for the double tap which was 1 and 2
  *   in all prior versions of this switch and code.  These buttons will be rarely used as they trigger with the switch being turned on or off, but some 
@@ -291,6 +291,9 @@ def zwaveEvent(physicalgraph.zwave.commands.centralscenev1.CentralSceneNotificat
     
     log.debug "---Central Scene Command--- ${device.displayName} sent ${cmd}"
     def upordown = []
+    def triptap = []
+    def singletap = []
+    def singlehold = []
     
     // scene number is 1 for up 2 for down
     upordown = (cmd.sceneNumber) as Integer
@@ -302,17 +305,17 @@ def zwaveEvent(physicalgraph.zwave.commands.centralscenev1.CentralSceneNotificat
     
     // triple taps 
     else if(cmd.keyAttributes == 4){
-    	def triptap = ( upordown + 2 )
+    	triptap = ( upordown + 2 )
 		createEvent(name: "button", value: "pushed", data: [buttonNumber: triptap], descriptionText: "$device.displayName button $triptap was pressed", isStateChange: true)
     }
     // single taps
     else if(cmd.keyAttributes == 0){
-    	def singletap = ( upordown + 4 )
+    	singletap = ( upordown + 4 )
 		createEvent(name: "button", value: "pushed", data: [buttonNumber: singletap], descriptionText: "$device.displayName button $singletap was pressed", isStateChange: true)
     }   
     // single tap hold
     else if(cmd.keyAttributes == 2){
-    	def singlehold = ( upordown + 4 )
+    	singlehold = ( upordown + 4 )
         cmd.createEvent(name: "button", value: "held", data: [buttonNumber: singlehold], descriptionText: "$device.displayName button $singlehold was pressed", isStateChange: true)
     }
     
