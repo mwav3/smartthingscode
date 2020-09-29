@@ -113,7 +113,7 @@ metadata {
        input "ledIndicator", "enum", title: "LED Indicator", description: "Turn LED indicator... ", required: false, options:["on": "When On", "off": "When Off", "never": "Never"], defaultValue: "off"
         input "invertSwitch", "bool", title: "Invert Switch", description: "Invert switch? ", required: false
         input "switchMode", "bool", title: "Make Dimmer On/Off Only", description: "On/Off Only? ", required: false
-        input "forceupdate", "bool", title: "Force Settings Update/Refresh?", description: "Toggle to force settings update", requied: false
+        input "forceupdate", "bool", title: "Force Settings Update/Refresh?", description: "Toggle to force settings update", required: false
 		input "zwaveSteps", "number", title: "Z-Wave Dim Steps (1-99) Default 1", description: "Z-Wave Dim Steps ", required: false, range: "1..99"
 		input "zwaveDelay", "number", title: "Z-Wave Dim Delay (10ms Increments, 3-255) Default 3", description: "Z-Wave Dim Delay (10ms Increments) ", required: false, range: "3..255"
 		input "manualSteps", "number", title: "Manual Dim Steps (1-99) Default 1", description: "Manual Dim Steps ", required: false, range: "1..99"
