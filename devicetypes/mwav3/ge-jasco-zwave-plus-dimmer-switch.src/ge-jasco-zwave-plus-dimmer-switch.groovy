@@ -4,9 +4,10 @@
  *  Contains code from https://github.com/nuttytree/Nutty-SmartThings/blob/master/devicetypes/nuttytree/ge-jasco-zwave-plus-dimmer-switch.src/ge-jasco-zwave-plus-dimmer-switch.groovy
  *
  *  Copyright 2020 Chris Nussbaum, Tim Grimley
- *  Contributors - Evan Hunter
+ *  Contributors - Evan Hunter, Bradlee_S
  *  Thanks Chris for the original copy of this great code!
  *  Thanks Evan for additional parameter configs for on/off and minimum dimmer
+ *  Thanks Bradlee for the button programming to get this working in the new app's automations section
  *
  *  Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except
  *  in compliance with the License. You may obtain a copy of the License at:
@@ -22,17 +23,19 @@
  *
  *	Changelog:
  *
+ *  0.22 (11/17/2020) - Changed to support one button with different values (see mapping note below)
  *	0.21 (10/08/2020) - Added setting to ramp when setting level, added light capability
  *  0.20 (09/26/2020) - Added settings to force button value updates, configuration for on/off only, minimum dim level
  *  0.19 (08/29/2020) - Additional rewrite moved config settings to preferences to work with new app various changes
  *  0.18 (08/19/2020) - Initial Release Old handler Updated to add compatibility to new Smart lighting app 
  *  
  *
- *   Button Mappings:
+ *   Button Mappings  NOTE - THIS IS A BREAKING CHANGE from prior versions and uses a single button.  
+ *                    ALL prior automations will need to be re-programmed or updated when updating this DTH from old versions:
  *
  *   ACTION          BUTTON#    BUTTON ACTION
- *   Double-Tap Up     1        pressed
- *   Double-Tap Down   2        pressed
+ *   Double-Tap Up     1        up_2x
+ *   Double-Tap Down   1        down_2x
  *
  */
 
@@ -258,7 +261,7 @@ def parse(String description) {
         log.debug "Non-parsed event: ${description}"
     }
     if (!device.currentValue("supportedButtonValues")) {
-        sendEvent(name: "supportedButtonValues", value:JsonOutput.toJson(["pushed"]), displayed:false)
+        sendEvent(name: "supportedButtonValues", value:JsonOutput.toJson(["up_2x","down_2x"]), displayed:false)
     }
     result    
 }
@@ -298,10 +301,10 @@ private dimmerEvents(physicalgraph.zwave.Command cmd) {
 
 def zwaveEvent(physicalgraph.zwave.commands.basicv1.BasicSet cmd) {
 	if (cmd.value == 255) {
-    	createEvent(name: "button", value: "pushed", data: [buttonNumber: 1], descriptionText: "Double-tap up (button 1) on $device.displayName", isStateChange: true, type: "physical")
+    	createEvent(name: "button", value: "up_2x", data: [buttonNumber: 1], descriptionText: "Double-tap up (button 1 up_2x) on $device.displayName", isStateChange: true, type: "physical")
     }
 	else if (cmd.value == 0) {
-    	createEvent(name: "button", value: "pushed", data: [buttonNumber: 2], descriptionText: "Double-tap down (button 2) on $device.displayName", isStateChange: true, type: "physical")
+    	createEvent(name: "button", value: "down_2x", data: [buttonNumber: 1], descriptionText: "Double-tap down (button 1 down_2x) on $device.displayName", isStateChange: true, type: "physical")
     }
 }
 
@@ -310,7 +313,7 @@ def zwaveEvent(physicalgraph.zwave.commands.associationv2.AssociationReport cmd)
     state.group3 = "1,2"
     if (cmd.groupingIdentifier == 3) {
     	if (cmd.nodeId.contains(zwaveHubNodeId)) {
-        	createEvent(name: "numberOfButtons", value: 2, displayed: false)
+        	createEvent(name: "numberOfButtons", value: 1, displayed: false)
         }
         else {
         	sendEvent(name: "numberOfButtons", value: 0, displayed: false)
@@ -533,8 +536,8 @@ def updated() {
 			break
 	}
  
-	sendEvent(name: "numberOfButtons", value: 2, displayed: false)
-    sendEvent(name: "supportedButtonValues", value:JsonOutput.toJson(["pushed"]), displayed:false) 
+	sendEvent(name: "numberOfButtons", value: 1, displayed: false)
+    sendEvent(name: "supportedButtonValues", value:JsonOutput.toJson(["up_2x","down_2x"]), displayed:false) 
 	
 	sendHubCommand(cmds.collect{ new physicalgraph.device.HubAction(it.format()) }, 500)
    
@@ -595,11 +598,11 @@ void setRamp() {
 }
 
 def doubleUp() {
-	sendEvent(name: "button", value: "pushed", data: [buttonNumber: 1], descriptionText: "Double-tap up (button 1) on $device.displayName", isStateChange: true, type: "digital")
+	sendEvent(name: "button", value: "up_2x", data: [buttonNumber: 1], descriptionText: "Double-tap up (button 1 up_2x) on $device.displayName", isStateChange: true, type: "digital")
 }
 
 def doubleDown() {
-	sendEvent(name: "button", value: "pushed", data: [buttonNumber: 2], descriptionText: "Double-tap down (button 2) on $device.displayName", isStateChange: true, type: "digital")
+	sendEvent(name: "button", value: "down_2x", data: [buttonNumber: 1], descriptionText: "Double-tap down (button 1 down_2x) on $device.displayName", isStateChange: true, type: "digital")
 }
 
 def set(steps) {
