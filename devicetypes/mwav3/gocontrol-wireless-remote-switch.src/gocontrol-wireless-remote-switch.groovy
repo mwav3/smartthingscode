@@ -7,6 +7,7 @@
  *  Copyright 2020 Chris Nussbaum, Austin Pritchett, and Tim Grimley
  *  Thanks Austin for the original copy of this code, which was used as a template to make these updates.
  *  Thanks Chris for association programming and double tap.
+ *  Thanks Bradlee S for pointing out new supported button values
  *
  *  Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except
  *  in compliance with the License. You may obtain a copy of the License at:
@@ -22,21 +23,26 @@
  *
  *	Changelog:
  *
+ *  0.12 (11/18/2020) - Redid code for different actions to work with native automations section of new app. Added new preferences.
  *  0.11 (09/22/2020) - Initial Release Updated to Work with New Smartthings App, support double tap and associations
  *	
  *   Button Mappings:
  *
  *   ACTION          BUTTON#    BUTTON ACTION
- *   Single-Tap Up     1        pressed/held
- *   Single-Tap Down     2        pressed/held
- *   Double-Tap Up     3        pressed/held
- *   Double-Tap Down   4        pressed/held   
+ *   Single-Tap Up        1        up
+ *   Single-Tap Down      1        down
+ *   Hold Up              1        up_hold
+ *   Hold Down            1        down_hold
+ *   Double-Tap Up        1        up_2x
+ *   Double-Tap Down      1        down_2x  
+ *   Double-Tap Up Hold   1        up_3x
+ *   Double-Tap Down Hold 1        down_3x
  *
- *  Note - Central scene control still triggers on any double tap, ie doubletap up does trigger button 3, but also triggers button 1.  
- *  Preferences can be updated to only send association commands, which would support double tap button 3 and 4, but disable button 1 and 2 
- *  from scene control and smartapp use. Single tap Button 1 and 2 could then be used to trigger zwave devices in association group 2 directly only.
- *  Possible solution to use all buttons and differentiate control is to use Webcore and set up a condition to trigger after single tap, 
- *  wait a few seconds, check for double tap, and trigger different actions based on whether double tap was detected or not
+ *  Note - Central scene control, aka single tap, still triggers on any double tap due to firmware of the switch.  
+ *         If you don't want single and double tap actions to both trigger at the same time, a toggle option has been added 
+ *         to preferences to create a delay that will disregard the single tap on a double tap.  
+ *         However, this option will always create a delay of about 2 seconds when clicking the single tap while 
+ *         the handler checks for a double tap.  If not using double tap set this preference to false to eliminate delay.
  *
  */
 
@@ -62,6 +68,10 @@ metadata {
         command "controlBoth"
         command "controlScene"
         command "controlAssociation"
+        command "pressup"
+        command "pressdown"
+        command "holdup"
+        command "holddown"
 
 
 		fingerprint deviceId:"0x1801", inClusters:"0x5E, 0x86, 0x72, 0x5B, 0x85, 0x59, 0x73, 0x70, 0x80, 0x84, 0x5A, 0x7A", outClusters:"0x5B, 0x20"        
@@ -70,7 +80,6 @@ metadata {
 	simulator {
 		// TODO: define status and reply messages here
         status "button 1 pushed":  "command: 5B03, payload: 40 00 01"
-		status "button 2 pushed":  "command: 5B03, payload: 41 00 02"
 	}
 
 	tiles {
@@ -94,6 +103,8 @@ metadata {
        
         input  "invertSwitch", "bool", title: "Invert Switch", description: "Invert switch? ", required: false 
       	input  "controlMode", "enum", title: "Control Mode (Default Both)", description: "Associaton and scene control... ", required: false, options:["both": "Send Both Scenes and Associations", "scene": "Send Scenes Only", "association": "Send Associations Only" ], defaultValue: "both" 
+      	input "delayTime", "bool", title: "Create delay for separate double tap?", description: "Set to true to stop single tap from also triggering with double tap ", required: false
+      	input "forceupdate", "bool", title: "Force Settings Update/Refresh?", description: "Toggle to force settings update", required: false
       
       input (
             type: "paragraph",
@@ -136,44 +147,103 @@ def parse(String description) {
 	return results
      
      if (!device.currentValue("supportedButtonValues")) {
-        sendEvent(name: "supportedButtonValues", value:JsonOutput.toJson(["pushed","held"]), displayed:false)
+        sendEvent(name: "supportedButtonValues", value:JsonOutput.toJson(["down","up","up_hold","down_hold","up_2x","down_2x","up_3x","down_3x"]), displayed:false)
     }
 
 }
 
 def zwaveEvent(physicalgraph.zwave.commands.basicv1.BasicSet cmd) {
+    state.lastPress = now()
     log.debug "---Double Tap--- ${device.displayName} sent ${cmd}"
 	if (cmd.value == 255) {
-    	createEvent(name: "button", value: "pushed", data: [buttonNumber: 3], descriptionText: "Double-tap up (button 3) on $device.displayName", isStateChange: true, type: "physical")
+    	createEvent(name: "button", value: "up_2x", data: [buttonNumber: 1], descriptionText: "Double-tap up on $device.displayName", isStateChange: true, type: "physical")
     }
 	else if (cmd.value == 0) {
-    	createEvent(name: "button", value: "pushed", data: [buttonNumber: 4], descriptionText: "Double-tap down (button 4) on $device.displayName", isStateChange: true, type: "physical")
+    	createEvent(name: "button", value: "down_2x", data: [buttonNumber: 1], descriptionText: "Double-tap down on $device.displayName", isStateChange: true, type: "physical")
     }
  }
 
  def zwaveEvent(physicalgraph.zwave.commands.switchmultilevelv3.SwitchMultilevelStartLevelChange cmd) {
-	 log.debug "---Double Tap and Hold--- ${device.displayName} sent ${cmd}"
+	state.lastPress = now()
+    log.debug "---Double Tap and Hold--- ${device.displayName} sent ${cmd}"
 	if (cmd.startLevel == 0) {
-    	createEvent(name: "button", value: "held", data: [buttonNumber: 3], descriptionText: "Double-tap up and hold (button 3) on $device.displayName", isStateChange: true, type: "physical")     }
+    	createEvent(name: "button", value: "up_3x", data: [buttonNumber: 1], descriptionText: "Double-tap up and hold up on $device.displayName", isStateChange: true, type: "physical")     }
 	else if (cmd.startLevel == 255) {
-    	createEvent(name: "button", value: "held", data: [buttonNumber: 4], descriptionText: "Double-tap down and hold (button 4) on $device.displayName", isStateChange: true, type: "physical")
+    	createEvent(name: "button", value: "down_3x", data: [buttonNumber: 1], descriptionText: "Double-tap down and hold down on $device.displayName", isStateChange: true, type: "physical")
     }
  }
 
 
 def zwaveEvent(physicalgraph.zwave.commands.centralscenev1.CentralSceneNotification cmd) {
     log.debug "---Central Scene Command--- ${device.displayName} sent ${cmd}"
-    def button = []
-    
-    button = (cmd.sceneNumber) as Integer
       	
     if(cmd.keyAttributes == 0){
-		createEvent(name: "button", value: "pushed", data: [buttonNumber: button], descriptionText: "$device.displayName button $button was pushed", isStateChange: true)
-    }else if(cmd.keyAttributes == 1){
-		createEvent(name: "button", value: "holdRelease", data: [buttonNumber: button], descriptionText: "$device.displayName button $button was released", isStateChange: true)
-    }else if(cmd.keyAttributes == 2){
-		createEvent(name: "button", value: "held", data: [buttonNumber: button], descriptionText: "$device.displayName button $button was held", isStateChange: true)
-    }      
+    	
+         if(cmd.sceneNumber == 1) {
+          
+          	if(delayTime == true) {
+          		runIn(2, pressup) }
+		 	else if(delayTime == false) {
+            createEvent(name: "button", value: "up", data: [buttonNumber: 1], descriptionText: "$device.displayName button up was pushed", isStateChange: true) }
+        }
+         else if(cmd.sceneNumber == 2) {
+         	if(delayTime == true) {
+            	runIn(2, pressdown) }
+            else if(delayTime == false) {
+          createEvent(name: "button", value: "down", data: [buttonNumber: 1], descriptionText: "$device.displayName button down was pushed", isStateChange: true) } 
+        } 
+        
+    } else if(cmd.keyAttributes == 1){    
+		createEvent(name: "button", value: "holdRelease", data: [buttonNumber: 1], descriptionText: "$device.displayName button was released", isStateChange: true)
+    }
+    
+     else if(cmd.keyAttributes == 2){
+		 if(cmd.sceneNumber == 1) {
+          
+          	if(delayTime == true) {
+          		runIn(2, holdup) }
+		 	else if(delayTime == false) {
+            createEvent(name: "button", value: "up_hold", data: [buttonNumber: 1], descriptionText: "$device.displayName button up was held", isStateChange: true) }
+        }
+         else if(cmd.sceneNumber == 2) {
+         	if(delayTime == true) {
+            	runIn(2, holddown) }
+            else if(delayTime == false) {
+          createEvent(name: "button", value: "down_hold", data: [buttonNumber: 1], descriptionText: "$device.displayName button down was held", isStateChange: true) } 
+        } 
+	}
+}
+
+void pressup() {
+	if (state.lastPress && now() <= state.lastPress + 5000) {
+    log.debug "$device.displayName - Double tap detected disregard single tap"
+    return }
+    state.lastPress = now()
+	sendEvent(name: "button", value: "up", data: [buttonNumber: 1], descriptionText: "$device.displayName button up was pushed", isStateChange: true) 
+}
+
+void pressdown() {
+	if (state.lastPress && now() <= state.lastPress + 5000) {
+    log.debug "$device.displayName - Double tap detected disregard single tap"
+    return }
+    state.lastPress = now()
+	sendEvent(name: "button", value: "down", data: [buttonNumber: 1], descriptionText: "$device.displayName button down was pushed", isStateChange: true)
+}
+
+void holdup() {
+	if (state.lastPress && now() <= state.lastPress + 5000) {
+    log.debug "$device.displayName - Double tap hold detected disregard single hold"
+    return }
+    state.lastPress = now()
+	sendEvent(name: "button", value: "up_hold", data: [buttonNumber: 1], descriptionText: "$device.displayName button up was held", isStateChange: true) 
+}
+
+void holddown() {
+	if (state.lastPress && now() <= state.lastPress + 5000) {
+    log.debug "$device.displayName - Double tap hold detected disregard single hold"
+    return }
+    state.lastPress = now()
+	sendEvent(name: "button", value: "down_hold", data: [buttonNumber: 1], descriptionText: "$device.displayName button down was held", isStateChange: true)
 }
 
 def zwaveEvent(physicalgraph.zwave.commands.wakeupv2.WakeUpNotification cmd) {
@@ -272,7 +342,7 @@ def updated() {
         default:
         	notInverted()
             break
-	}   
+	} 
     
     switch (controlMode) {
 		case "both":
@@ -289,7 +359,11 @@ def updated() {
 			break
 	}
     
+    sendEvent(name: "supportedButtonValues", value:JsonOutput.toJson(["down","up","up_hold","down_hold","up_2x","down_2x","up_3x","down_3x"]), displayed:false)
+    
     sendHubCommand(cmds.collect{ new physicalgraph.device.HubAction(it.format()) }, 500)
+    
+    log.debug "---Preferences Updated--- ${device.displayName} sent ${cmds}"
     
 }
 
@@ -319,11 +393,9 @@ void notInverted() {
 }
 
 def initialize() {
-	sendEvent(name: "numberOfButtons", value: 4, displayed: false)
-    sendEvent(name: "button", value: "pushed", data: [buttonNumber: 1], displayed: false)
-    
-     if (!device.currentValue("supportedButtonValues")) {
-        sendEvent(name: "supportedButtonValues", value:JsonOutput.toJson(["pushed","held"]), displayed:false) }
+	sendEvent(name: "numberOfButtons", value: 1, displayed: false)
+    sendEvent(name: "button", value: "up", data: [buttonNumber: 1], displayed: false)
+    sendEvent(name: "supportedButtonValues", value:JsonOutput.toJson(["down","up","up_hold","down_hold","up_2x","down_2x","up_3x","down_3x"]), displayed:false) 
    
     
 }
