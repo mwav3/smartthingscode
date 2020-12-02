@@ -13,15 +13,21 @@
  *  on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License
  *  for the specific language governing permissions and limitations under the License.
  *
- *  Contributors:
- *  Tim Grimley (Author): Combined Z-wave 3 Speed Fan Code + Double Tap
- *  Chris Nussbaum (nuttytree): GE/Jasco Z-Wave Plus On Off Switch
+ *  Copyright 2020 Chris Nussbaum, Tim Grimley
+ *  Contributors -  Bradlee_S
+ *  Thanks Chris for the original copy of this great code!
+ *  Thanks Bradlee for the button programming to get this working in the new app's automations section
  *
- *   Button Mappings:
+ *   Button Mappings  NOTE - THIS IS A BREAKING CHANGE from prior versions and uses a single button.  
+ *                    ALL prior automations will need to be re-programmed or updated when updating this DTH from old versions:
  *
  *   ACTION          BUTTON#    BUTTON ACTION
- *   Double-Tap Up     1        pressed
- *   Double-Tap Down   2        pressed
+ *   Double-Tap Up     1        up_2x
+ *   Double-Tap Down   1        down_2x
+ *
+ *  0.11 (12/02/2020) - Changed to support one button with different values (see mapping note below)
+ *  0.10 (09/23/2020) - Initial Release 
+ *
  */
  
 
@@ -63,6 +69,7 @@ metadata {
         
         input "ledIndicator", "enum", title: "LED Indicator", description: "Turn LED indicator... ", required: false, options:["on": "When On", "off": "When Off", "never": "Never"], defaultValue: "off"
         input "invertSwitch", "bool", title: "Invert Switch", description: "Invert switch? ", required: false
+        input "forceupdate", "bool", title: "Force Settings Update/Refresh?", description: "Toggle to force settings update", required: false
         
         input (
             type: "paragraph",
@@ -133,7 +140,8 @@ def parse(String description) {
 		log.debug "Parse returned ${result?.descriptionText}"
 	}
     if (!device.currentValue("supportedButtonValues")) {
-        sendEvent(name: "supportedButtonValues", value:JsonOutput.toJson(["pushed"]), displayed:false)}
+        sendEvent(name: "supportedButtonValues", value:JsonOutput.toJson(["up_2x","down_2x"]), displayed:false)
+    }
 	return result
 }
 
@@ -159,10 +167,10 @@ def zwaveEvent(physicalgraph.zwave.commands.associationv2.AssociationReport cmd)
 def zwaveEvent(physicalgraph.zwave.commands.basicv1.BasicSet cmd) {
 	log.debug "---BASIC SET V1--- ${device.displayName} sent ${cmd}"
     if (cmd.value == 255) {
-    	createEvent(name: "button", value: "pushed", data: [buttonNumber: 1], descriptionText: "Double-tap up (button 1) on $device.displayName", isStateChange: true, type: "physical")
+    	createEvent(name: "button", value: "up_2x", data: [buttonNumber: 1], descriptionText: "Double-tap up (button 1 up_2x) on $device.displayName", isStateChange: true, type: "physical")
     }
 	else if (cmd.value == 0) {
-    	createEvent(name: "button", value: "pushed", data: [buttonNumber: 2], descriptionText: "Double-tap down (button 2) on $device.displayName", isStateChange: true, type: "physical")
+    	createEvent(name: "button", value: "down_2x", data: [buttonNumber: 1], descriptionText: "Double-tap down (button 1 down_2x) on $device.displayName", isStateChange: true, type: "physical")
     }
     else {
     fanEvents(cmd)
@@ -267,9 +275,14 @@ def updated() {
             break
         default:
         	notInverted()
-	}      
+	} 
+    
+    sendEvent(name: "numberOfButtons", value: 1, displayed: false)
+    sendEvent(name: "supportedButtonValues", value:JsonOutput.toJson(["up_2x","down_2x"]), displayed:false) 
 
 	sendHubCommand(cmds.collect{ new physicalgraph.device.HubAction(it.format()) }, 500)
+    
+     log.debug "---Preferences Updated--- ${device.displayName} sent ${cmds}"
 }
 
 def fanEvents(physicalgraph.zwave.Command cmd) {
@@ -414,11 +427,11 @@ def isLeviton4Speed() {
 }
 
 def doubleUp() {
-	sendEvent(name: "button", value: "pushed", data: [buttonNumber: 1], descriptionText: "Double-tap up (button 1) on $device.displayName", isStateChange: true, type: "digital")
+	sendEvent(name: "button", value: "up_2x", data: [buttonNumber: 1], descriptionText: "Double-tap up (button 1 up_2x) on $device.displayName", isStateChange: true, type: "digital")
 }
 
 def doubleDown() {
-	sendEvent(name: "button", value: "pushed", data: [buttonNumber: 2], descriptionText: "Double-tap down (button 2) on $device.displayName", isStateChange: true, type: "digital")
+	sendEvent(name: "button", value: "down_2x", data: [buttonNumber: 1], descriptionText: "Double-tap down (button 1 down_2x) on $device.displayName", isStateChange: true, type: "digital")
 }
 
 void indicatorWhenOn() {
@@ -465,6 +478,11 @@ def refresh() {
 		cmds << zwave.manufacturerSpecificV1.manufacturerSpecificGet().format()
 	}
 	delayBetween(cmds,500)
+}
+
+def initialize() {
+	sendEvent(name: "numberOfButtons", value: 1, displayed: false)
+    sendEvent(name: "supportedButtonValues", value:JsonOutput.toJson(["up_2x","down_2x"]), displayed:false)     
 }
 
 // Private Methods
