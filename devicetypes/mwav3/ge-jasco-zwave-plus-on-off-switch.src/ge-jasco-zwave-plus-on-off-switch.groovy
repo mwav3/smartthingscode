@@ -4,7 +4,9 @@
  *  Contains code from https://github.com/nuttytree/Nutty-SmartThings/blob/master/devicetypes/nuttytree/ge-jasco-zwave-plus-on-off-switch.src/ge-jasco-zwave-plus-on-off-switch.groovy
  *
  *  Copyright 2020 Chris Nussbaum, Tim Grimley
+ *  Contributors - Bradlee_S
  *  Thanks Chris for the original copy of this great code!
+ *  Thanks Bradlee for the button programming to get this working in the new app's automations section
  *
  *  Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except
  *  in compliance with the License. You may obtain a copy of the License at:
@@ -20,25 +22,30 @@
  *
  *	Changelog:
  *
- *	0.12 (09/23/2020) - Support added for double tap and hold, added code to make sure button values updated 
+ *  0.13 (12/02/2020) - Changed button values to support automations view in new app (see mapping note below)
+ *  0.12 (09/23/2020) - Support added for double tap and hold, added code to make sure button values updated 
  *  0.11 (08/31/2020) - Initial Release Updated to Work with New Smartthings App
  *  
  *
- *   Button Mappings:
+ *   Button Mappings  NOTE - THIS IS A BREAKING CHANGE from prior versions and uses a single button.  
+ *                    ALL prior automations will need to be re-programmed or updated when updating this DTH from old versions:
  *
- *   ACTION          BUTTON#    BUTTON ACTION
- *   Double-Tap Up     1        pressed/held
- *   Double-Tap Down   2        pressed/held
+ *   ACTION             BUTTON#    BUTTON ACTION
+ *   Double-Tap Up        1        up_2x
+ *   Double-Tap Down      1        down_2x  
+ *   Double-Tap Up Hold   1        up_3x
+ *   Double-Tap Down Hold 1        down_3x
+ *   Double-Tap Release   1        down_4x
  * 
  *   Note - For double tap hold, tap twice and keep pressed up or down after second tap
- *   If held does not appear as an option, update any device preference (ie indicator) to add the "held" button value
+ *   If options do not change, go to preferences and toggle "force settings update/refresh"
  */
 
 import groovy.transform.Field
 import groovy.json.JsonOutput
 
 metadata {
-	definition (name: "GE Jasco Z-Wave Plus On Off Switch", namespace: "mwav3", author: "Tim Grimley") {
+	definition (name: "GE Jasco Z-Wave Plus On Off Test", namespace: "mwav3", author: "Tim Grimley") {
 		capability "Actuator"
 		capability "Button"
 		capability "Configuration"
@@ -78,6 +85,7 @@ metadata {
         
         input "ledIndicator", "enum", title: "LED Indicator", description: "Turn LED indicator... ", required: false, options:["on": "When On", "off": "When Off", "never": "Never"], defaultValue: "off"
         input "invertSwitch", "bool", title: "Invert Switch", description: "Invert switch? ", required: false
+        input "forceupdate", "bool", title: "Force Settings Update/Refresh?", description: "Toggle to force settings update", required: false
         
         input (
             type: "paragraph",
@@ -154,7 +162,7 @@ def parse(String description) {
     }
     
     if (!device.currentValue("supportedButtonValues")) {
-        sendEvent(name: "supportedButtonValues", value:JsonOutput.toJson(["pushed","held"]), displayed:false)
+        sendEvent(name: "supportedButtonValues", value:JsonOutput.toJson(["up_2x","down_2x","up_3x","down_3x","down_4x"]), displayed:false)
     }
     
     result    
@@ -178,30 +186,34 @@ def zwaveEvent(physicalgraph.zwave.commands.basicv1.BasicReport cmd) {
 def zwaveEvent(physicalgraph.zwave.commands.basicv1.BasicSet cmd) {
     log.debug "---Double Tap--- ${device.displayName} sent ${cmd}"
 	if (cmd.value == 255) {
-    	createEvent(name: "button", value: "pushed", data: [buttonNumber: 1], descriptionText: "Double-tap up (button 1) on $device.displayName", isStateChange: true, type: "physical")
+    	createEvent(name: "button", value: "up_2x", data: [buttonNumber: 1], descriptionText: "Double-tap up (up_2x) on $device.displayName", isStateChange: true, type: "physical")
     }
 	else if (cmd.value == 0) {
-    	createEvent(name: "button", value: "pushed", data: [buttonNumber: 2], descriptionText: "Double-tap down (button 2) on $device.displayName", isStateChange: true, type: "physical")
+    	createEvent(name: "button", value: "down_2x", data: [buttonNumber: 1], descriptionText: "Double-tap down (down_2x) on $device.displayName", isStateChange: true, type: "physical")
     }
 }
 
 def zwaveEvent(physicalgraph.zwave.commands.switchmultilevelv3.SwitchMultilevelStartLevelChange cmd) {
 	 log.debug "---Double Tap and Hold--- ${device.displayName} sent ${cmd}"
 	if (cmd.startLevel == 0) {
-    	createEvent(name: "button", value: "held", data: [buttonNumber: 1], descriptionText: "Double-tap up and hold (button 1) on $device.displayName", isStateChange: true, type: "physical")    
+    	createEvent(name: "button", value: "up_3x", data: [buttonNumber: 1], descriptionText: "Double-tap up and hold (up_3x) on $device.displayName", isStateChange: true, type: "physical")    
         }
 	else if (cmd.startLevel == 255) {
-    	createEvent(name: "button", value: "held", data: [buttonNumber: 2], descriptionText: "Double-tap down and hold (button 2) on $device.displayName", isStateChange: true, type: "physical")
+    	createEvent(name: "button", value: "down_3x", data: [buttonNumber: 1], descriptionText: "Double-tap down and hold (down_3x) on $device.displayName", isStateChange: true, type: "physical")
     }
  }
-
+ 
+def zwaveEvent(physicalgraph.zwave.commands.switchmultilevelv3.SwitchMultilevelStopLevelChange cmd) {
+	log.debug "---Double Tap and Release--- ${device.displayName} sent ${cmd}"
+	createEvent(name: "button", value: "down_4x", data: [buttonNumber: 1], descriptionText: "Double-tap Release (down_4x) on $device.displayName", isStateChange: true, type: "physical")    
+}
 
 def zwaveEvent(physicalgraph.zwave.commands.associationv2.AssociationReport cmd) {
 	log.debug "---ASSOCIATION REPORT V2--- ${device.displayName} sent groupingIdentifier: ${cmd.groupingIdentifier} maxNodesSupported: ${cmd.maxNodesSupported} nodeId: ${cmd.nodeId} reportsToFollow: ${cmd.reportsToFollow}"
     if (cmd.groupingIdentifier == 3) {
     	if (cmd.nodeId.contains(zwaveHubNodeId)) {
-        	createEvent(name: "numberOfButtons", value: 2, displayed: false)
-            sendEvent(name: "supportedButtonValues", value:JsonOutput.toJson(["pushed","held"]), displayed:false)
+        	createEvent(name: "numberOfButtons", value: 1, displayed: false)
+            sendEvent(name: "supportedButtonValues", value:JsonOutput.toJson(["up_2x","down_2x","up_3x","down_3x","down_4x"]), displayed:false)
         }
         else {
 			sendHubCommand(new physicalgraph.device.HubAction(zwave.associationV2.associationSet(groupingIdentifier: 3, nodeId: zwaveHubNodeId).format()))
@@ -322,10 +334,10 @@ def updated() {
         	notInverted()
 	}      
 	
-    sendEvent(name: "numberOfButtons", value: 2, displayed: false)
-    sendEvent(name: "supportedButtonValues", value:JsonOutput.toJson(["pushed","held"]), displayed:false) 
-     
 	sendHubCommand(cmds.collect{ new physicalgraph.device.HubAction(it.format()) }, 500)
+    
+    sendEvent(name: "numberOfButtons", value: 1, displayed: false)
+    sendEvent(name: "supportedButtonValues", value:JsonOutput.toJson(["up_2x","down_2x","up_3x","down_3x","down_4x"]), displayed:false) 
     
     log.debug "---Preferences Updated--- ${device.displayName} sent ${cmds}"
 }
@@ -356,11 +368,11 @@ void notInverted() {
 }
 
 def doubleUp() {
-	sendEvent(name: "button", value: "pushed", data: [buttonNumber: 1], descriptionText: "Double-tap up (button 1) on $device.displayName", isStateChange: true, type: "digital")
+	sendEvent(name: "button", value: "up_2x", data: [buttonNumber: 1], descriptionText: "Double-tap up (up_2x) on $device.displayName", isStateChange: true, type: "digital")
 }
 
 def doubleDown() {
-	sendEvent(name: "button", value: "pushed", data: [buttonNumber: 2], descriptionText: "Double-tap down (button 2) on $device.displayName", isStateChange: true, type: "digital")
+	sendEvent(name: "button", value: "down_2x", data: [buttonNumber: 1], descriptionText: "Double-tap down (down_2x) on $device.displayName", isStateChange: true, type: "digital")
 }
 
 def poll() {
@@ -400,8 +412,8 @@ def off() {
 }
 
 def initialize() {
-	sendEvent(name: "numberOfButtons", value: 2, displayed: false)
-    sendEvent(name: "supportedButtonValues", value:JsonOutput.toJson(["pushed","held"]), displayed:false) 
+	sendEvent(name: "numberOfButtons", value: 1, displayed: false)
+    sendEvent(name: "supportedButtonValues", value:JsonOutput.toJson(["up_2x","down_2x","up_3x","down_3x","down_4x"]), displayed:false) 
       
 }
 
