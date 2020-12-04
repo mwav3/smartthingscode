@@ -1,5 +1,5 @@
 /**
- *  GE/Jasco Z-Wave Plus On/Off Switch 46562
+ *  GE/Jasco Z-Wave Plus On/Off Switch 46201 or 46562
  * 
  *  Contains code from https://github.com/nuttytree/Nutty-SmartThings/blob/master/devicetypes/nuttytree/ge-jasco-zwave-plus-on-off-switch.src/ge-jasco-zwave-plus-on-off-switch.groovy
  *
