@@ -50,7 +50,7 @@ import groovy.transform.Field
 import groovy.json.JsonOutput
 
 metadata {
-	definition (name: "GoControl Wireless Remote Switch", namespace: "mwav3", author: "Tim Grimley") {
+	definition (name: "GoControl Wireless Remote Switch", namespace: "mwav3", author: "Tim Grimley", ocfDeviceType: "x.com.st.d.remotecontroller") {
     	capability "Actuator"
 		capability "Button"
         capability "Holdable Button"
