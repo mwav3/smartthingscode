@@ -183,13 +183,13 @@ def zwaveEvent(physicalgraph.zwave.commands.centralscenev1.CentralSceneNotificat
           
           	if(delayTime == true) {
           		runIn(2, pressup) }
-		 	else if(delayTime == false) {
+		 	else  {
             createEvent(name: "button", value: "up", data: [buttonNumber: 1], descriptionText: "$device.displayName button up was pushed", isStateChange: true) }
         }
          else if(cmd.sceneNumber == 2) {
          	if(delayTime == true) {
             	runIn(2, pressdown) }
-            else if(delayTime == false) {
+            else  {
           createEvent(name: "button", value: "down", data: [buttonNumber: 1], descriptionText: "$device.displayName button down was pushed", isStateChange: true) } 
         } 
         
@@ -202,13 +202,13 @@ def zwaveEvent(physicalgraph.zwave.commands.centralscenev1.CentralSceneNotificat
           
           	if(delayTime == true) {
           		runIn(2, holdup) }
-		 	else if(delayTime == false) {
+		 	else  {
             createEvent(name: "button", value: "up_hold", data: [buttonNumber: 1], descriptionText: "$device.displayName button up was held", isStateChange: true) }
         }
          else if(cmd.sceneNumber == 2) {
          	if(delayTime == true) {
             	runIn(2, holddown) }
-            else if(delayTime == false) {
+            else  {
           createEvent(name: "button", value: "down_hold", data: [buttonNumber: 1], descriptionText: "$device.displayName button down was held", isStateChange: true) } 
         } 
 	}
