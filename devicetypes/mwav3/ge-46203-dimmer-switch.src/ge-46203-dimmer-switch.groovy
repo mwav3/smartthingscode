@@ -1,10 +1,12 @@
 /**
- *  GE/Jasco 46203 Z-Wave Plus Dimmer Switch
+ *  GE/Jasco 14294/46203/ZW3010 Z-Wave Plus Dimmer Switch
  *
  *  Contains code from https://github.com/nuttytree/Nutty-SmartThings/blob/master/devicetypes/nuttytree/ge-jasco-zwave-plus-dimmer-switch.src/ge-jasco-zwave-plus-dimmer-switch.groovy
  *
  *  Copyright 2020 Chris Nussbaum, Tim Grimley
+ *  Contributors - Bradlee_S
  *  Thanks Chris for the original copy of this great code!
+ *  Thanks Bradlee for the button programming to get this working in the new app's automations section
  *
  *  Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except
  *  in compliance with the License. You may obtain a copy of the License at:
@@ -20,22 +22,34 @@
  *
  *	Changelog:
  *
- *  0.10 (09/15/2020) -	Initial 0.1 Beta. NOTE - This is a beta release, michicago confirmed functional though (Thanks!)
+ *  0.13 (12/30/2020) - Redid code for different button actions to work with native automations section of new app.
+ *  0.12 (9/23/2020) - Update button programming
+ *  0.11 (9/16/2020) - Addition of double and triple tap buttons
+ *  0.10 (09/15/2020) -	Initial 0.1 Beta. 
  *  
  *
- *   Button Mappings:
+ *   Button Mappings  NOTE - THIS IS A BREAKING CHANGE from any other DTH and uses a single button.  
+ *                    ALL prior automations will need to be re-programmed or updated when updating this DTH from other versions:
  *
- *   ACTION          BUTTON#    BUTTON ACTION
- *   Double-Tap Up     1        pressed
- *   Double-Tap Down   2        pressed
- *
+ *   ACTION             BUTTON#    BUTTON ACTION
+ *   Single-Tap Up        1        up
+ *   Single-Tap Down      1        down  
+ *   Double-Tap Up        1        up_2x
+ *   Double-Tap Down      1        down_2x  
+ *   Triple-Tap Up        1        up_3x
+ *   Triple-Tap Down      1        down_3x
+ *   Hold Up              1        up_hold
+ *   Hold Down            1        down_hold
+ *   Release Hold	  1        holdrelease
+ * 
+ *   If options do not change, go to preferences and toggle "force settings update/refresh"
  */
 
 import groovy.transform.Field
 import groovy.json.JsonOutput
 
 metadata {
-	definition (name: "GE 46203 Dimmer Switch", namespace: "mwav3", author: "Tim Grimley") {
+	definition (name: "GE 46203 Dimmer Switch", namespace: "mwav3", author: "Tim Grimley", ocfDeviceType: "oic.d.light") {
 		capability "Actuator"
 		capability "Button"
 		capability "Configuration"
@@ -46,6 +60,7 @@ metadata {
 		capability "Sensor"
 		capability "Switch"
 		capability "Switch Level"
+                capability "Light"
 
 		attribute "onoffordimmer", "enum", ["onoff", "notonoff"]
         attribute "allowaltexclusion", "enum", ["normalexc", "extrapress"]
@@ -55,8 +70,7 @@ metadata {
         attribute "defaultbright", "number"
        
         
-        command "doubleUp"
-        command "doubleDown"
+     
         command "onoff"
         command "notonoff"
         command "levelUp"
@@ -100,8 +114,7 @@ metadata {
     	input "mindim", "number", title: "Minimum Dimmer Threshold (1-99) Default 1", description: "Minimum Dimmer ", required: false, range: "1..99"
 		input "maxbright", "number", title: "Maximum Brightness Threshold (1-99) Default 99", description: "Maximum Brightness ", required: false, range: "1..99"
         input "defaultbright", "number", title: "Default Brightness at Switch- 0 for previous", description: "Default Level ", required: false, range: "0..99"
-		
-
+		input "forceupdate", "bool", title: "Force Settings Update/Refresh?", description: "Toggle to force settings update", requied: false
        
        input (
             type: "paragraph",
@@ -121,7 +134,7 @@ metadata {
 
         input (
             name: "requestedGroup3",
-            title: "Association Group 3 Members (Max of 4):",
+            title: "Association Group 3 Members (Max of 5):",
             type: "text",
             required: false
         )
@@ -148,13 +161,6 @@ metadata {
 			state "default", label:'', action:"refresh.refresh", icon:"st.secondary.refresh"
 		 }
          
-          standardTile("doubleUp", "device.button", width: 3, height: 2, decoration: "flat") {
-			state "default", label: "Tap ▲▲", backgroundColor: "#ffffff", action: "doubleUp", icon: "st.switches.switch.on"
-		 }     
- 
-         standardTile("doubleDown", "device.button", width: 3, height: 2, decoration: "flat") {
-			state "default", label: "Tap ▼▼", backgroundColor: "#ffffff", action: "doubleDown", icon: "st.switches.switch.off"
-		 } 
    
 		main "switch"
         details(["switch", "refresh"])
@@ -172,8 +178,11 @@ def parse(String description) {
     } else {
         log.debug "Non-parsed event: ${description}"
     }
+    if (!device.currentValue("numberOfButtons")) {
+    	sendEvent(name: "numberOfButtons", value: 1, displayed: false)
+    }
     if (!device.currentValue("supportedButtonValues")) {
-        sendEvent(name: "supportedButtonValues", value:JsonOutput.toJson(["pushed"]), displayed:false)
+        sendEvent(name: "supportedButtonValues", value:JsonOutput.toJson(["up","down","up_hold","down_hold","up_2x","down_2x","up_3x","down_3x"]), displayed:false)
     }
     result    
 }
@@ -210,34 +219,13 @@ private dimmerEvents(physicalgraph.zwave.Command cmd) {
 	return result
 }
 
-
-def zwaveEvent(physicalgraph.zwave.commands.basicv1.BasicSet cmd) {
-	if (cmd.value == 255) {
-    	createEvent(name: "button", value: "pushed", data: [buttonNumber: 1], descriptionText: "Double-tap up (button 1) on $device.displayName", isStateChange: true, type: "physical")
-    }
-	else if (cmd.value == 0) {
-    	createEvent(name: "button", value: "pushed", data: [buttonNumber: 2], descriptionText: "Double-tap down (button 2) on $device.displayName", isStateChange: true, type: "physical")
-    }
-}
-
 def zwaveEvent(physicalgraph.zwave.commands.associationv2.AssociationReport cmd) {
 	log.debug "---ASSOCIATION REPORT V2--- ${device.displayName} sent groupingIdentifier: ${cmd.groupingIdentifier} maxNodesSupported: ${cmd.maxNodesSupported} nodeId: ${cmd.nodeId} reportsToFollow: ${cmd.reportsToFollow}"
     state.group3 = "1,2"
-    if (cmd.groupingIdentifier == 3) {
-    	if (cmd.nodeId.contains(zwaveHubNodeId)) {
-        	createEvent(name: "numberOfButtons", value: 2, displayed: false)
-        }
-        else {
-        	sendEvent(name: "numberOfButtons", value: 0, displayed: false)
-			sendHubCommand(new physicalgraph.device.HubAction(zwave.associationV2.associationSet(groupingIdentifier: 3, nodeId: zwaveHubNodeId).format()))
-			sendHubCommand(new physicalgraph.device.HubAction(zwave.associationV2.associationGet(groupingIdentifier: 3).format()))
-        }
-    }
 }
 
 def zwaveEvent(physicalgraph.zwave.commands.configurationv2.ConfigurationReport cmd) {
-    // not sure if this section will work right or needs revision
-    
+       
     log.debug "---CONFIGURATION REPORT V2--- ${device.displayName} sent ${cmd}"
 	def name = ""
     def value = ""
@@ -300,6 +288,78 @@ def zwaveEvent(physicalgraph.zwave.Command cmd) {
     log.warn "${device.displayName} received unhandled command: ${cmd}"
 }
 
+
+// new double and triple tap code for buttons controlled by central scene control
+def zwaveEvent(physicalgraph.zwave.commands.centralscenev1.CentralSceneNotification cmd) {
+    
+    log.debug "---Central Scene Command--- ${device.displayName} sent ${cmd}"
+    def upordown = []
+    
+    // scene number is 1 for up 2 for down
+    upordown = (cmd.sceneNumber) as Integer
+
+  // single taps
+     if(cmd.keyAttributes == 0){
+    	if(upordown == 1) {
+        
+    	createEvent(name: "button", value: "up", data: [buttonNumber: 1], descriptionText: "$device.displayName button up was single tapped", isStateChange: true)
+    	}
+    	else if(upordown == 2) {
+        
+        createEvent(name: "button", value: "down", data: [buttonNumber: 1], descriptionText: "$device.displayName button down was single tapped", isStateChange: true)
+    	}     
+      }   
+      
+  // button release
+     else if(cmd.keyAttributes == 1){
+    	createEvent(name: "button", value: "holdRelease", data: [buttonNumber: 1], descriptionText: "$device.displayName button was released", isStateChange: true)    
+      }  
+
+  // single tap hold
+    else if(cmd.keyAttributes == 2){
+  		if(upordown == 1) {
+        
+    	createEvent(name: "button", value: "up_hold", data: [buttonNumber: 1], descriptionText: "$device.displayName button up was held", isStateChange: true)
+    	}
+        
+    	else if(upordown == 2) {
+        
+        createEvent(name: "button", value: "down_hold", data: [buttonNumber: 1], descriptionText: "$device.displayName button down was held", isStateChange: true)
+    	} 
+      }
+    
+
+    // double taps
+    else if(cmd.keyAttributes == 3){
+    
+    	if(upordown == 1) {
+        
+    	createEvent(name: "button", value: "up_2x", data: [buttonNumber: 1], descriptionText: "$device.displayName button up was double tapped", isStateChange: true)
+    	}
+    	else if(upordown == 2) {
+        
+        createEvent(name: "button", value: "down_2x", data: [buttonNumber: 1], descriptionText: "$device.displayName button down was double tapped", isStateChange: true)
+    	}
+    }
+    
+    // triple taps 
+    else if(cmd.keyAttributes == 4){
+    	if(upordown == 1) {
+        
+    	createEvent(name: "button", value: "up_3x", data: [buttonNumber: 1], descriptionText: "$device.displayName button up was triple tapped", isStateChange: true)
+    	}
+    	else if(upordown == 2) {
+        
+        createEvent(name: "button", value: "down_3x", data: [buttonNumber: 1], descriptionText: "$device.displayName button down was triple tapped", isStateChange: true)
+    	}  
+     }
+   
+    else {
+    log.warn "${device.displayName} received unhandled command: ${cmd}"
+    }
+ 
+}
+
 // handle commands
 def configure() {
     def cmds = []
@@ -312,11 +372,6 @@ def configure() {
     cmds << zwave.configurationV2.configurationGet(parameterNumber: 31).format()
     cmds << zwave.configurationV2.configurationGet(parameterNumber: 32).format()
    
-    
-    // Add the hub to association group 3 to get double-tap notifications
-    // not a good way to do double tap on this switch but leaving for now
-    cmds << zwave.associationV2.associationSet(groupingIdentifier: 3, nodeId: zwaveHubNodeId).format()
-    
     delayBetween(cmds,500)
 }
 
@@ -424,8 +479,12 @@ def updated() {
 	    break
 	}  
  
+	sendEvent(name: "numberOfButtons", value: 1, displayed: false)
+    sendEvent(name: "supportedButtonValues", value:JsonOutput.toJson(["up","down","up_hold","down_hold","up_2x","down_2x","up_3x","down_3x"]), displayed:false)
+  
 	sendHubCommand(cmds.collect{ new physicalgraph.device.HubAction(it.format()) }, 500)
    
+   log.debug "---Preferences Updated--- ${device.displayName} sent ${cmds}"
    
    }
 
@@ -487,13 +546,6 @@ void fastramp() {
     sendHubCommand(new physicalgraph.device.HubAction(zwave.configurationV2.configurationSet(configurationValue: [1], parameterNumber: 6, size: 1).format()))
  }
 
-def doubleUp() {
-	sendEvent(name: "button", value: "pushed", data: [buttonNumber: 1], descriptionText: "Double-tap up (button 1) on $device.displayName", isStateChange: true, type: "digital")
-}
-
-def doubleDown() {
-	sendEvent(name: "button", value: "pushed", data: [buttonNumber: 2], descriptionText: "Double-tap down (button 2) on $device.displayName", isStateChange: true, type: "digital")
-}
 
 def setmindim(mindim) {
 	mindim = Math.max(Math.min(mindim, 99), 1)
@@ -601,13 +653,19 @@ def levelDown() {
     }
 }
 
+def initialize() {
+	sendEvent(name: "numberOfButtons", value: 1, displayed: false)
+    sendEvent(name: "supportedButtonValues", value:JsonOutput.toJson(["up","down","up_hold","down_hold","up_2x","down_2x","up_3x","down_3x"]), displayed:false)
+  
+}
+
 // Private Methods
 
 private parseAssocGroupList(list, group) {
-    def nodes = group == 2 ? [] : [zwaveHubNodeId]
+   def nodes = []
     if (list) {
         def nodeList = list.split(',')
-        def max = group == 2 ? 5 : 4
+        def max = 5
         def count = 0
 
         nodeList.each { node ->
@@ -618,7 +676,7 @@ private parseAssocGroupList(list, group) {
             else if (node.matches("\\p{XDigit}+")) {
                 def nodeId = Integer.parseInt(node,16)
                 if (nodeId == zwaveHubNodeId) {
-                	log.warn "Association Group ${group}: Adding the hub as an association is not allowed (it would break double-tap)."
+                	log.warn "Association Group ${group}: Adding the hub as an association is not allowed (it would conflict with scene control)."
                 }
                 else if ( (nodeId > 0) & (nodeId < 256) ) {
                     nodes << nodeId
