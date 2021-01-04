@@ -61,6 +61,7 @@ metadata {
         
         // These include version because there are older firmwares that don't support double-tap or the extra association groups
 		fingerprint mfr:"0063", prod:"4952", model: "3137", ver: "5.53", deviceJoinName: "Jasco Z-Wave Plus Toggle Switch"
+		fingerprint mfr:"0063", prod:"4952", model: "3135", ver: "5.53", deviceJoinName: "Jasco Z-Wave Plus Wall Switch"
 	}
 
 	simulator {
