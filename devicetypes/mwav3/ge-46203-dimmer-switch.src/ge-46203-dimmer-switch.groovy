@@ -85,6 +85,7 @@ metadata {
         
         // These include version because there are older firmwares that don't support double-tap or the extra association groups
         fingerprint mfr:"0063", prod:"4944", model:"3235", ver: "5.54", deviceJoinName: "GE Z-Wave Plus Wall Dimmer"
+	fingerprint mfr:"0063", prod:"4944", model:"3237", ver: "5.54", deviceJoinName: "GE Z-Wave Plus Toggle Dimmer"
 	    }
 
 
