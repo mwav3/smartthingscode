@@ -156,18 +156,18 @@ def zwaveEvent(physicalgraph.zwave.commands.centralscenev1.CentralSceneNotificat
         sendEvent(name: "sequenceNumber", value: cmd.sequenceNumber, displayed:false)
         switch (cmd.keyAttributes) {
            case 0:
-              createEvent(name: "button", value: "pushed", data: [buttonNumber: buttonnum], descriptionText: "$device.displayName button up was pushed", isStateChange: true)
+              createEvent(name: "button", value: "pushed", data: [buttonNumber: buttonnum], descriptionText: "$device.displayName button $buttonnum was pushed", isStateChange: true)
            break
            case 1:
               if (settings.holdMode == "2")  {
-              createEvent(name: "button", value: "held", data: [buttonNumber: buttonnum], descriptionText: "$device.displayName button up was held and then released", isStateChange: true) }
+              createEvent(name: "button", value: "held", data: [buttonNumber: buttonnum], descriptionText: "$device.displayName button $buttonnum was held and then released", isStateChange: true) }
            break
            case 2:
               if (!settings.holdMode || settings.holdMode == "1") {
-              createEvent(name: "button", value: "held", data: [buttonNumber: buttonnum], descriptionText: "$device.displayName button up was held", isStateChange: true) } 
+              createEvent(name: "button", value: "held", data: [buttonNumber: buttonnum], descriptionText: "$device.displayName button $buttonnum was held", isStateChange: true) } 
            break
            case 3:
-              createEvent(name: "button", value: "double", data: [buttonNumber: buttonnum], descriptionText: "$device.displayName button up was double pressed", isStateChange: true)
+              createEvent(name: "button", value: "double", data: [buttonNumber: buttonnum], descriptionText: "$device.displayName button $buttonnum was double pressed", isStateChange: true)
            break
            default:
                logging("Unhandled CentralSceneNotification: ${cmd}")
