@@ -303,6 +303,8 @@ def configure() {
     cmds << zwave.associationV2.associationSet(groupingIdentifier: 3, nodeId: zwaveHubNodeId).format()
     
     delayBetween(cmds,500)
+    
+    log.debug "-${device.displayName} --Configured--- sent following cmds ${cmds} to device"
 }
 
 def installed() {
@@ -359,9 +361,11 @@ def updated() {
 			break
 	}
     
-    sendEvent(name: "supportedButtonValues", value:JsonOutput.toJson(["down","up","up_hold","down_hold","up_2x","down_2x","up_3x","down_3x"]), displayed:false)
+    sendEvent(name: "supportedButtonValues", value:JsonOutput.toJson(["down","up","up_hold","down_hold","up_2x","down_2x","up_3x","down_3x","holdrelease"]), displayed:false)
     
     sendHubCommand(cmds.collect{ new physicalgraph.device.HubAction(it.format()) }, 500)
+    
+    configure()
     
     log.debug "---Preferences Updated--- ${device.displayName} sent ${cmds}"
     
@@ -396,7 +400,7 @@ def initialize() {
 	sendEvent(name: "numberOfButtons", value: 1, displayed: false)
     sendEvent(name: "button", value: "up", data: [buttonNumber: 1], displayed: false)
     sendEvent(name: "supportedButtonValues", value:JsonOutput.toJson(["down","up","up_hold","down_hold","up_2x","down_2x","up_3x","down_3x"]), displayed:false) 
-   
+    configure()
     
 }
 
