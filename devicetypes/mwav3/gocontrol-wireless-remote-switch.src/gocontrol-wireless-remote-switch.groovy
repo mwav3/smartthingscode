@@ -361,7 +361,7 @@ def updated() {
 			break
 	}
     
-    sendEvent(name: "supportedButtonValues", value:JsonOutput.toJson(["down","up","up_hold","down_hold","up_2x","down_2x","up_3x","down_3x","holdrelease"]), displayed:false)
+    sendEvent(name: "supportedButtonValues", value:JsonOutput.toJson(["down","up","up_hold","down_hold","up_2x","down_2x","up_3x","down_3x"]), displayed:false)
     
     sendHubCommand(cmds.collect{ new physicalgraph.device.HubAction(it.format()) }, 500)
     
