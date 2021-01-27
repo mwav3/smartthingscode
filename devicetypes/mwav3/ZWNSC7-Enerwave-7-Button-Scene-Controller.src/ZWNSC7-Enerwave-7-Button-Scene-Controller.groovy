@@ -24,7 +24,7 @@ import groovy.json.JsonOutput
 
  metadata {
   // Automatically generated. Make future change here.
-  definition (name: "ZWN-SC7 Enerwave 7 Button Scene Controller", namespace: "mwav3", author: "Tim Grimley") {
+  definition (name: "ZWNSC7 Enerwave 7 Button Scene Controller", namespace: "mwav3", author: "Tim Grimley") {
         capability "Actuator"
         capability "Button"
         capability "Configuration"
