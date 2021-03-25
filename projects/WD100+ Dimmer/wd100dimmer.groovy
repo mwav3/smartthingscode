@@ -447,13 +447,13 @@ def tapDown3Response(String buttonType) {
 
 def holdUpResponse(String buttonType) {
     sendEvent(name: "status" , value: "Hold ▲")
-	[name: "button", value: "up_hold", data: [buttonNumber: "5"], descriptionText: "$device.displayName Hold-Up pressed", 
+	[name: "button", value: "up_hold", data: [buttonNumber: "1"], descriptionText: "$device.displayName Hold-Up pressed", 
     isStateChange: true, type: "$buttonType"]
 }
 
 def holdDownResponse(String buttonType) {
     sendEvent(name: "status" , value: "Hold ▼")
-	[name: "button", value: "down_hold", data: [buttonNumber: "6"], descriptionText: "$device.displayName Hold-Down pressed", 
+	[name: "button", value: "down_hold", data: [buttonNumber: "1"], descriptionText: "$device.displayName Hold-Down pressed", 
     isStateChange: true, type: "$buttonType"]
 }
 
