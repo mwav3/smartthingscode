@@ -62,7 +62,7 @@ import groovy.transform.Field
 import groovy.json.JsonOutput
 
 metadata {
-	definition (name: "WD100+ Dimmer", namespace: "darwinsden", author: "darwin@darwinsden.com", ocfDeviceType: "oic.d.light") {
+	definition (name: "Homeseer WD100 Dimmer", namespace: "darwinsden", author: "darwin@darwinsden.com", ocfDeviceType: "oic.d.light") {
 		capability "Switch Level"
 		capability "Actuator"
 		capability "Indicator"
@@ -73,6 +73,7 @@ metadata {
         capability "Button"
         capability "Configuration"
         capability "Light"
+        capability "Health Check"
         
         command "tapUp2"
         command "tapDown2"
