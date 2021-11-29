@@ -33,9 +33,16 @@
  *   Button Mappings  NOTE - THIS IS A BREAKING CHANGE from prior versions and uses a single button.  
  *                    ALL prior automations will need to be re-programmed or updated when updating this DTH from old versions:
  *
- *   ACTION          BUTTON#    BUTTON ACTION
- *   Double-Tap Up     1        up_2x
- *   Double-Tap Down   1        down_2x
+ *   ACTION             BUTTON#    BUTTON ACTION
+ *   Single-Tap Up        1        up
+ *   Single-Tap Down      1        down  
+ *   Double-Tap Up        1        up_2x
+ *   Double-Tap Down      1        down_2x  
+ *   Triple-Tap Up        1        up_3x
+ *   Triple-Tap Down      1        down_3x
+ *   Hold Up              1        up_hold
+ *   Hold Down            1        down_hold
+ *   Release Hold	  1        holdrelease
  *
  */
 
@@ -56,10 +63,10 @@ metadata {
 		capability "Switch Level"
         capability "Light"
 
-		attribute "inverted", "enum", ["inverted", "not inverted"]
+	attribute "inverted", "enum", ["inverted", "not inverted"]
         attribute "switchMode", "enum", ["modeDimmer", "modeSwitch"]
         attribute "ramp", "enum", ["instant", "ramp"]
-		attribute "minimumDim", "number"
+	attribute "minimumDim", "number"
         attribute "zwaveSteps", "number"
         attribute "zwaveDelay", "number"
         attribute "manualSteps", "number"
@@ -72,8 +79,8 @@ metadata {
         command "inverted"
         command "notInverted"
         command "modeDimmer"
-		command "modeSwitch"
-		command "setMinimumDim"
+	command "modeSwitch"
+	command "setMinimumDim"
         command "levelUp"
         command "levelDown"
         command "setZwaveSteps"
@@ -85,9 +92,9 @@ metadata {
         
         // These include version because there are older firmwares that don't support double-tap or the extra association groups
         fingerprint mfr:"0063", prod:"4944", model:"3038", ver: "5.26", deviceJoinName: "GE Z-Wave Plus Wall Dimmer"
-	    fingerprint mfr:"0063", prod:"4944", model:"3038", ver: "5.27", deviceJoinName: "GE Z-Wave Plus Wall Dimmer"
-	    fingerprint mfr:"0063", prod:"4944", model:"3038", ver: "5.28", deviceJoinName: "GE Z-Wave Plus Wall Dimmer"
-	    fingerprint mfr:"0063", prod:"4944", model:"3038", ver: "5.29", deviceJoinName: "GE Z-Wave Plus Wall Dimmer"
+	fingerprint mfr:"0063", prod:"4944", model:"3038", ver: "5.27", deviceJoinName: "GE Z-Wave Plus Wall Dimmer"
+	fingerprint mfr:"0063", prod:"4944", model:"3038", ver: "5.28", deviceJoinName: "GE Z-Wave Plus Wall Dimmer"
+	fingerprint mfr:"0063", prod:"4944", model:"3038", ver: "5.29", deviceJoinName: "GE Z-Wave Plus Wall Dimmer"
         fingerprint mfr:"0063", prod:"4944", model:"3039", ver: "5.19", deviceJoinName: "GE Z-Wave Plus 1000W Wall Dimmer"
         fingerprint mfr:"0063", prod:"4944", model:"3130", ver: "5.21", deviceJoinName: "GE Z-Wave Plus Toggle Dimmer"
         fingerprint mfr:"0063", prod:"4944", model:"3135", ver: "5.26", deviceJoinName: "Jasco Z-Wave Plus Wall Dimmer"
@@ -121,15 +128,15 @@ metadata {
         input "switchMode", "bool", title: "Make Dimmer On/Off Only", description: "On/Off Only? ", required: false
         input "ramp", "bool", title: "Ramp on set level (True, False) Default False", description: "Ramp Set Level", required: false
         input "forceupdate", "bool", title: "Force Settings Update/Refresh?", description: "Toggle to force settings update", required: false
-		input "zwaveSteps", "number", title: "Z-Wave Dim Steps (1-99) Default 1", description: "Z-Wave Dim Steps ", required: false, range: "1..99"
-		input "zwaveDelay", "number", title: "Z-Wave Dim Delay (10ms Increments, 3-255) Default 3", description: "Z-Wave Dim Delay (10ms Increments) ", required: false, range: "3..255"
-		input "manualSteps", "number", title: "Manual Dim Steps (1-99) Default 1", description: "Manual Dim Steps ", required: false, range: "1..99"
-		input "manualDelay", "number", title: "Manual Dim Delay (10ms Increments, 1-255) Default 3", description: "Manual Dim Delay (10ms Increments) ", required: false, range: "1..255"
-		input "minimumDim", "number", title: "Minimim Dim Level (1-99) Default 1", description: "%", required: false, range: "1..99"		
+	input "zwaveSteps", "number", title: "Z-Wave Dim Steps (1-99) Default 1", description: "Z-Wave Dim Steps ", required: false, range: "1..99"
+	input "zwaveDelay", "number", title: "Z-Wave Dim Delay (10ms Increments, 3-255) Default 3", description: "Z-Wave Dim Delay (10ms Increments) ", required: false, range: "3..255"
+	input "manualSteps", "number", title: "Manual Dim Steps (1-99) Default 1", description: "Manual Dim Steps ", required: false, range: "1..99"
+	input "manualDelay", "number", title: "Manual Dim Delay (10ms Increments, 1-255) Default 3", description: "Manual Dim Delay (10ms Increments) ", required: false, range: "1..255"
+	input "minimumDim", "number", title: "Minimim Dim Level (1-99) Default 1", description: "%", required: false, range: "1..99"		
 		
         // No one uses these
         // input "allonSteps", "number", title: "All-On/All-Off Dim Steps (1-99)", description: "All-On/All-Off Dim Steps ", required: false, range: "1..99"
-		// input "allonDelay", "number", title: "All-On/All-Off Dim Delay (10ms Increments, 1-255)", description: "All-On/All-Off Dim Delay (10ms Increments) ", required: false, range: "1..255"
+	// input "allonDelay", "number", title: "All-On/All-Off Dim Delay (10ms Increments, 1-255)", description: "All-On/All-Off Dim Delay (10ms Increments) ", required: false, range: "1..255"
 
        
        input (
@@ -261,7 +268,7 @@ def parse(String description) {
         log.debug "Non-parsed event: ${description}"
     }
     if (!device.currentValue("supportedButtonValues")) {
-        sendEvent(name: "supportedButtonValues", value:JsonOutput.toJson(["up_2x","down_2x"]), displayed:false)
+        sendEvent(name: "supportedButtonValues", value:JsonOutput.toJson(["up","down","up_hold","down_hold","up_2x","down_2x","up_3x","down_3x"]), displayed:false)
     }
     result    
 }
@@ -305,6 +312,60 @@ def zwaveEvent(physicalgraph.zwave.commands.basicv1.BasicSet cmd) {
     }
 	else if (cmd.value == 0) {
     	createEvent(name: "button", value: "down_2x", data: [buttonNumber: 1], descriptionText: "Double-tap down (button 1 down_2x) on $device.displayName", isStateChange: true, type: "physical")
+    }
+}
+
+// new double and triple tap code for buttons controlled by central scene control
+def zwaveEvent(physicalgraph.zwave.commands.centralscenev1.CentralSceneNotification cmd) {
+    log.debug "---Central Scene Command--- ${device.displayName} sent ${cmd}"
+    def upordown = []
+    
+    // scene number is 1 for up 2 for down
+    upordown = (cmd.sceneNumber) as Integer
+
+    // single taps
+    if(cmd.keyAttributes == 0){
+        if(upordown == 1) {
+    	   createEvent(name: "button", value: "up", data: [buttonNumber: 1], descriptionText: "$device.displayName button up was single tapped", isStateChange: true)
+    	}
+    	else if(upordown == 2) {
+           createEvent(name: "button", value: "down", data: [buttonNumber: 1], descriptionText: "$device.displayName button down was single tapped", isStateChange: true)
+    	}     
+    } 
+    // button release
+    else if(cmd.keyAttributes == 1){
+        createEvent(name: "button", value: "holdRelease", data: [buttonNumber: 1], descriptionText: "$device.displayName button was released", isStateChange: true)    
+    }
+    // single tap hold
+    else if(cmd.keyAttributes == 2){
+  		if(upordown == 1) {
+    	    createEvent(name: "button", value: "up_hold", data: [buttonNumber: 1], descriptionText: "$device.displayName button up was held", isStateChange: true)
+    	}
+        
+    	else if(upordown == 2) {
+            createEvent(name: "button", value: "down_hold", data: [buttonNumber: 1], descriptionText: "$device.displayName button down was held", isStateChange: true)
+    	} 
+    }
+    // double taps
+    else if(cmd.keyAttributes == 3){
+    	if(upordown == 1) {
+    	    createEvent(name: "button", value: "up_2x", data: [buttonNumber: 1], descriptionText: "$device.displayName button up was double tapped", isStateChange: true)
+    	}
+    	else if(upordown == 2) {
+            createEvent(name: "button", value: "down_2x", data: [buttonNumber: 1], descriptionText: "$device.displayName button down was double tapped", isStateChange: true)
+    	}
+    }
+    // triple taps 
+    else if(cmd.keyAttributes == 4){
+    	if(upordown == 1) {    
+    	    createEvent(name: "button", value: "up_3x", data: [buttonNumber: 1], descriptionText: "$device.displayName button up was triple tapped", isStateChange: true)
+    	}
+    	else if(upordown == 2) {
+            createEvent(name: "button", value: "down_3x", data: [buttonNumber: 1], descriptionText: "$device.displayName button down was triple tapped", isStateChange: true)
+    	}  
+    }
+    else {
+        log.warn "${device.displayName} received unhandled command: ${cmd}"
     }
 }
 
@@ -397,6 +458,14 @@ def zwaveEvent(physicalgraph.zwave.commands.versionv1.VersionReport cmd) {
 	log.debug "---VERSION REPORT V1--- ${device.displayName} is running firmware version: $fw, Z-Wave version: ${cmd.zWaveProtocolVersion}.${cmd.zWaveProtocolSubVersion}"
 }
 
+def zwaveEvent(physicalgraph.zwave.commands.switchbinaryv1.SwitchBinaryReport cmd) {
+	if (cmd.value == 255) {
+		createEvent(name: "switch", value: "on", type: "physical")
+    }
+	else if (cmd.value == 0) {
+		createEvent(name: "switch", value: "off", type: "physical")
+    }
+}
 
 def zwaveEvent(physicalgraph.zwave.Command cmd) {
     log.warn "${device.displayName} received unhandled command: ${cmd}"
@@ -537,7 +606,7 @@ def updated() {
 	}
  
 	sendEvent(name: "numberOfButtons", value: 1, displayed: false)
-    sendEvent(name: "supportedButtonValues", value:JsonOutput.toJson(["up_2x","down_2x"]), displayed:false) 
+    sendEvent(name: "supportedButtonValues", value:JsonOutput.toJson(["up","down","up_hold","down_hold","up_2x","down_2x","up_3x","down_3x"]), displayed:false)
 	
 	sendHubCommand(cmds.collect{ new physicalgraph.device.HubAction(it.format()) }, 500)
    
