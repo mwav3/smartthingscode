@@ -18,13 +18,13 @@
  *  on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License
  *  for the specific language governing permissions and limitations under the License.
  *
- *	Author: Tim Grimley
- *	Date: 8/31/2020
+ *    Author: Tim Grimley
+ *    Date: 8/31/2020
  *
- *	Changelog:
+ *    Changelog:
  *
  *  0.22 (11/17/2020) - Changed to support one button with different values (see mapping note below)
- *	0.21 (10/08/2020) - Added setting to ramp when setting level, added light capability
+ *    0.21 (10/08/2020) - Added setting to ramp when setting level, added light capability
  *  0.20 (09/26/2020) - Added settings to force button value updates, configuration for on/off only, minimum dim level
  *  0.19 (08/29/2020) - Additional rewrite moved config settings to preferences to work with new app various changes
  *  0.18 (08/19/2020) - Initial Release Old handler Updated to add compatibility to new Smart lighting app 
@@ -42,7 +42,7 @@
  *   Triple-Tap Down      1        down_3x
  *   Hold Up              1        up_hold
  *   Hold Down            1        down_hold
- *   Release Hold	  1        holdrelease
+ *   Release Hold      1        holdrelease
  *
  */
 
@@ -50,23 +50,23 @@ import groovy.transform.Field
 import groovy.json.JsonOutput
 
 metadata {
-	definition (name: "GE/Jasco Z-Wave Plus Dimmer Switch", namespace: "mwav3", author: "Tim Grimley") {
-		capability "Actuator"
-		capability "Button"
-		capability "Configuration"
-		capability "Health Check"
-		capability "Indicator"
-		capability "Polling"
-		capability "Refresh"
-		capability "Sensor"
-		capability "Switch"
-		capability "Switch Level"
+    definition (name: "GE/Jasco Z-Wave Plus Dimmer Switch", namespace: "mwav3", author: "Tim Grimley") {
+        capability "Actuator"
+        capability "Button"
+        capability "Configuration"
+        capability "Health Check"
+        capability "Indicator"
+        capability "Polling"
+        capability "Refresh"
+        capability "Sensor"
+        capability "Switch"
+        capability "Switch Level"
         capability "Light"
 
-	attribute "inverted", "enum", ["inverted", "not inverted"]
+        attribute "inverted", "enum", ["inverted", "not inverted"]
         attribute "switchMode", "enum", ["modeDimmer", "modeSwitch"]
         attribute "ramp", "enum", ["instant", "ramp"]
-	attribute "minimumDim", "number"
+        attribute "minimumDim", "number"
         attribute "zwaveSteps", "number"
         attribute "zwaveDelay", "number"
         attribute "manualSteps", "number"
@@ -79,8 +79,8 @@ metadata {
         command "inverted"
         command "notInverted"
         command "modeDimmer"
-	command "modeSwitch"
-	command "setMinimumDim"
+        command "modeSwitch"
+        command "setMinimumDim"
         command "levelUp"
         command "levelDown"
         command "setZwaveSteps"
@@ -92,51 +92,50 @@ metadata {
         
         // These include version because there are older firmwares that don't support double-tap or the extra association groups
         fingerprint mfr:"0063", prod:"4944", model:"3038", ver: "5.26", deviceJoinName: "GE Z-Wave Plus Wall Dimmer"
-	fingerprint mfr:"0063", prod:"4944", model:"3038", ver: "5.27", deviceJoinName: "GE Z-Wave Plus Wall Dimmer"
-	fingerprint mfr:"0063", prod:"4944", model:"3038", ver: "5.28", deviceJoinName: "GE Z-Wave Plus Wall Dimmer"
-	fingerprint mfr:"0063", prod:"4944", model:"3038", ver: "5.29", deviceJoinName: "GE Z-Wave Plus Wall Dimmer"
+        fingerprint mfr:"0063", prod:"4944", model:"3038", ver: "5.27", deviceJoinName: "GE Z-Wave Plus Wall Dimmer"
+        fingerprint mfr:"0063", prod:"4944", model:"3038", ver: "5.28", deviceJoinName: "GE Z-Wave Plus Wall Dimmer"
+        fingerprint mfr:"0063", prod:"4944", model:"3038", ver: "5.29", deviceJoinName: "GE Z-Wave Plus Wall Dimmer"
         fingerprint mfr:"0063", prod:"4944", model:"3039", ver: "5.19", deviceJoinName: "GE Z-Wave Plus 1000W Wall Dimmer"
         fingerprint mfr:"0063", prod:"4944", model:"3130", ver: "5.21", deviceJoinName: "GE Z-Wave Plus Toggle Dimmer"
         fingerprint mfr:"0063", prod:"4944", model:"3135", ver: "5.26", deviceJoinName: "Jasco Z-Wave Plus Wall Dimmer"
         fingerprint mfr:"0063", prod:"4944", model:"3136", ver: "5.21", deviceJoinName: "Jasco Z-Wave Plus 1000W Wall Dimmer"
         fingerprint mfr:"0063", prod:"4944", model:"3137", ver: "5.20", deviceJoinName: "Jasco Z-Wave Plus Toggle Dimmer"
-	}
+    }
 
 
-	simulator {
-		status "on":  "command: 2003, payload: FF"
-		status "off": "command: 2003, payload: 00"
-		status "09%": "command: 2003, payload: 09"
-		status "10%": "command: 2003, payload: 0A"
-		status "33%": "command: 2003, payload: 21"
-		status "66%": "command: 2003, payload: 42"
-		status "99%": "command: 2003, payload: 63"
+    simulator {
+        status "on":  "command: 2003, payload: FF"
+        status "off": "command: 2003, payload: 00"
+        status "09%": "command: 2003, payload: 09"
+        status "10%": "command: 2003, payload: 0A"
+        status "33%": "command: 2003, payload: 21"
+        status "66%": "command: 2003, payload: 42"
+        status "99%": "command: 2003, payload: 63"
 
-		// reply messages
-		reply "2001FF,delay 5000,2602": "command: 2603, payload: FF"
-		reply "200100,delay 5000,2602": "command: 2603, payload: 00"
-		reply "200119,delay 5000,2602": "command: 2603, payload: 19"
-		reply "200132,delay 5000,2602": "command: 2603, payload: 32"
-		reply "20014B,delay 5000,2602": "command: 2603, payload: 4B"
-		reply "200163,delay 5000,2602": "command: 2603, payload: 63"
-	}
+        // reply messages
+        reply "2001FF,delay 5000,2602": "command: 2603, payload: FF"
+        reply "200100,delay 5000,2602": "command: 2603, payload: 00"
+        reply "200119,delay 5000,2602": "command: 2603, payload: 19"
+        reply "200132,delay 5000,2602": "command: 2603, payload: 32"
+        reply "20014B,delay 5000,2602": "command: 2603, payload: 4B"
+        reply "200163,delay 5000,2602": "command: 2603, payload: 63"
+    }
     
     preferences {
-       
-       input "ledIndicator", "enum", title: "LED Indicator", description: "Turn LED indicator... ", required: false, options:["on": "When On", "off": "When Off", "never": "Never"], defaultValue: "off"
+        input "ledIndicator", "enum", title: "LED Indicator", description: "Turn LED indicator... ", required: false, options:["on": "When On", "off": "When Off", "never": "Never"], defaultValue: "off"
         input "invertSwitch", "bool", title: "Invert Switch", description: "Invert switch? ", required: false
         input "switchMode", "bool", title: "Make Dimmer On/Off Only", description: "On/Off Only? ", required: false
         input "ramp", "bool", title: "Ramp on set level (True, False) Default False", description: "Ramp Set Level", required: false
         input "forceupdate", "bool", title: "Force Settings Update/Refresh?", description: "Toggle to force settings update", required: false
-	input "zwaveSteps", "number", title: "Z-Wave Dim Steps (1-99) Default 1", description: "Z-Wave Dim Steps ", required: false, range: "1..99"
-	input "zwaveDelay", "number", title: "Z-Wave Dim Delay (10ms Increments, 3-255) Default 3", description: "Z-Wave Dim Delay (10ms Increments) ", required: false, range: "3..255"
-	input "manualSteps", "number", title: "Manual Dim Steps (1-99) Default 1", description: "Manual Dim Steps ", required: false, range: "1..99"
-	input "manualDelay", "number", title: "Manual Dim Delay (10ms Increments, 1-255) Default 3", description: "Manual Dim Delay (10ms Increments) ", required: false, range: "1..255"
-	input "minimumDim", "number", title: "Minimim Dim Level (1-99) Default 1", description: "%", required: false, range: "1..99"		
-		
+        input "zwaveSteps", "number", title: "Z-Wave Dim Steps (1-99) Default 1", description: "Z-Wave Dim Steps ", required: false, range: "1..99"
+        input "zwaveDelay", "number", title: "Z-Wave Dim Delay (10ms Increments, 3-255) Default 3", description: "Z-Wave Dim Delay (10ms Increments) ", required: false, range: "3..255"
+        input "manualSteps", "number", title: "Manual Dim Steps (1-99) Default 1", description: "Manual Dim Steps ", required: false, range: "1..99"
+        input "manualDelay", "number", title: "Manual Dim Delay (10ms Increments, 1-255) Default 3", description: "Manual Dim Delay (10ms Increments) ", required: false, range: "1..255"
+        input "minimumDim", "number", title: "Minimim Dim Level (1-99) Default 1", description: "%", required: false, range: "1..99"        
+        
         // No one uses these
         // input "allonSteps", "number", title: "All-On/All-Off Dim Steps (1-99)", description: "All-On/All-Off Dim Steps ", required: false, range: "1..99"
-	// input "allonDelay", "number", title: "All-On/All-Off Dim Delay (10ms Increments, 1-255)", description: "All-On/All-Off Dim Delay (10ms Increments) ", required: false, range: "1..255"
+        // input "allonDelay", "number", title: "All-On/All-Off Dim Delay (10ms Increments, 1-255)", description: "All-On/All-Off Dim Delay (10ms Increments) ", required: false, range: "1..255"
 
        
        input (
@@ -163,97 +162,38 @@ metadata {
         )
     }
 
-	tiles(scale:2) {
-		multiAttributeTile(name:"switch", type: "lighting", width: 6, height: 4, canChangeIcon: true){
-			tileAttribute ("device.switch", key: "PRIMARY_CONTROL") {
-				attributeState "on", label: '${name}', action: "switch.off", icon: "st.switches.switch.on", backgroundColor: "#00a0dc", nextState:"turningOff"
-				attributeState "off", label: '${name}', action: "switch.on", icon: "st.switches.switch.off", backgroundColor: "#ffffff", nextState:"turningOn"
-				attributeState "turningOn", label:"Turning On", action:"switch.off", icon:"st.switches.switch.on", backgroundColor:"#00a0dc", nextState:"turningOff"
-				attributeState "turningOff", label:"Turning Off", action:"switch.on", icon:"st.switches.switch.off", backgroundColor:"#ffffff", nextState:"turningOn"
-			}
-			tileAttribute ("device.level", key: "VALUE_CONTROL") {
-				attributeState "VALUE_UP", action:"levelUp"
-				attributeState "VALUE_DOWN", action:"levelDown"
-			}
-			tileAttribute ("device.level", key: "SLIDER_CONTROL") {
-				attributeState "level", action:"switch level.setLevel"
-			}
-		}
+    tiles(scale:2) {
+        multiAttributeTile(name:"switch", type: "lighting", width: 6, height: 4, canChangeIcon: true){
+            tileAttribute ("device.switch", key: "PRIMARY_CONTROL") {
+                attributeState "on", label: '${name}', action: "switch.off", icon: "st.switches.switch.on", backgroundColor: "#00a0dc", nextState:"turningOff"
+                attributeState "off", label: '${name}', action: "switch.on", icon: "st.switches.switch.off", backgroundColor: "#ffffff", nextState:"turningOn"
+                attributeState "turningOn", label:"Turning On", action:"switch.off", icon:"st.switches.switch.on", backgroundColor:"#00a0dc", nextState:"turningOff"
+                attributeState "turningOff", label:"Turning Off", action:"switch.on", icon:"st.switches.switch.off", backgroundColor:"#ffffff", nextState:"turningOn"
+            }
+            tileAttribute ("device.level", key: "VALUE_CONTROL") {
+                attributeState "VALUE_UP", action:"levelUp"
+                attributeState "VALUE_DOWN", action:"levelDown"
+            }
+            tileAttribute ("device.level", key: "SLIDER_CONTROL") {
+                attributeState "level", action:"switch level.setLevel"
+            }
+        }
         
-         	standardTile("refresh", "device.switch", width: 2, height: 2, inactiveLabel: false, decoration: "flat") {
-			state "default", label:'', action:"refresh.refresh", icon:"st.secondary.refresh"
-		 }
+        standardTile("refresh", "device.switch", width: 2, height: 2, inactiveLabel: false, decoration: "flat") {
+            state "default", label:'', action:"refresh.refresh", icon:"st.secondary.refresh"
+        }
          
-          standardTile("doubleUp", "device.button", width: 3, height: 2, decoration: "flat") {
-			state "default", label: "Tap ▲▲", backgroundColor: "#ffffff", action: "doubleUp", icon: "st.switches.switch.on"
-		 }     
+        standardTile("doubleUp", "device.button", width: 3, height: 2, decoration: "flat") {
+            state "default", label: "Tap ▲▲", backgroundColor: "#ffffff", action: "doubleUp", icon: "st.switches.switch.on"
+        }
  
-         standardTile("doubleDown", "device.button", width: 3, height: 2, decoration: "flat") {
-			state "default", label: "Tap ▼▼", backgroundColor: "#ffffff", action: "doubleDown", icon: "st.switches.switch.off"
-		 } 
+        standardTile("doubleDown", "device.button", width: 3, height: 2, decoration: "flat") {
+            state "default", label: "Tap ▼▼", backgroundColor: "#ffffff", action: "doubleDown", icon: "st.switches.switch.off"
+        }
 
-        
-        	// These are removed since they do not appear in new app
-        
-       
-                      
-		// standardTile("indicator", "device.indicatorStatus", width: 2, height: 2, inactiveLabel: false, decoration: "flat") {
-		//	state "when off", action:"indicator.indicatorWhenOn", icon:"st.indicators.lit-when-off"
-		//	state "when on", action:"indicator.indicatorNever", icon:"st.indicators.lit-when-on"
-		//	state "never", action:"indicator.indicatorWhenOff", icon:"st.indicators.never-lit"
-		// }
-        
-		// standardTile("inverted", "device.inverted", width: 2, height: 2, inactiveLabel: false, decoration: "flat") {
-		//	state "not inverted", label: "Not Inverted", action:"inverted", icon:"https://raw.githubusercontent.com/nuttytree/Nutty-SmartThings/master/devicetypes/nuttytree/SwitchNotInverted.png", backgroundColor: "#ffffff"
-		//	state "inverted", label: "Inverted", action:"notInverted", icon:"https://raw.githubusercontent.com/nuttytree/Nutty-SmartThings/master/devicetypes/nuttytree/SwitchInverted.png", backgroundColor: "#ffffff"
-		// }
-
-		// standardTile("zwaveStepsLabel", "device.zwaveSteps",  width: 2, height: 1, inactiveLabel: false) {
-        //	state "default", label:'Z-Wave Dim Steps: ${currentValue}'
-        // }
-        
-        // controlTile("zwaveSteps", "device.zwaveSteps", "slider", width: 4, height: 1, range:"(1..99)", inactiveLabel: false) {
-		//	state "default", action:"setZwaveSteps"
-		// }
-
-		// standardTile("zwaveDelayLabel", "device.zwaveDelay",  width: 2, height: 1, inactiveLabel: false) {
-        // 	state "default", label:'Z-Wave Dim Delay: ${currentValue}0ms'
-        // }
-        // controlTile("zwaveDelay", "device.zwaveDelay", "slider", width: 4, height: 1, range:"(1..255)", inactiveLabel: false) {
-		//	state "default", action:"setZwaveDelay"
-		// }
-
-		// standardTile("manualStepsLabel", "device.manualSteps",  width: 2, height: 1, inactiveLabel: false) {
-        //	state "default", label:'Manual Dim Steps: ${currentValue}'
-        // }
-        // controlTile("manualSteps", "device.manualSteps", "slider", width: 4, height: 1, range:"(1..99)", inactiveLabel: false) {
-		//	state "default", action:"setManualSteps"
-		// }
-
-		// standardTile("manualDelayLabel", "device.manualDelay",  width: 2, height: 1, inactiveLabel: false) {
-        //	state "default", label:'Manual Dim Delay: ${currentValue}0ms'
-        // }
-        // controlTile("manualDelay", "device.manualDelay", "slider", width: 4, height: 1, range:"(1..255)", inactiveLabel: false) {
-		//	state "default", action:"setManualDelay"
-		// }
-
-		// standardTile("allStepsLabel", "device.allSteps",  width: 2, height: 1, inactiveLabel: false) {
-        // 	state "default", label:'All On/Off Dim Steps: ${currentValue}'
-        // }
-        // controlTile("allSteps", "device.allSteps", "slider", width: 4, height: 1, range:"(1..99)", inactiveLabel: false) {
-		//	state "default", action:"setAllSteps"
-		// }
-
-		// standardTile("allDelayLabel", "device.allDelay",  width: 2, height: 1, inactiveLabel: false) {
-        //	state "default", label:'All On/Off Dim Delay: ${currentValue}0ms'
-        //   }
-        // controlTile("allDelay", "device.allDelay", "slider", width: 4, height: 1, range:"(1..255)", inactiveLabel: false) {
-		//	state "default", action:"setAllDelay"
-		// }
-
-		main "switch"
+        main "switch"
         details(["switch", "refresh"])
-	}
+    }
 }
 
 // parse events into attributes
@@ -274,44 +214,44 @@ def parse(String description) {
 }
 
 def zwaveEvent(physicalgraph.zwave.commands.crc16encapv1.Crc16Encap cmd) {
-	log.debug("zwaveEvent(): CRC-16 Encapsulation Command received: ${cmd}")
-	def encapsulatedCommand = zwave.commandClass(cmd.commandClass)?.command(cmd.command)?.parse(cmd.data)
-	if (!encapsulatedCommand) {
-		log.warn("zwaveEvent(): Could not extract command from ${cmd}")
-	} else {
-		log.debug("zwaveEvent(): Extracted command ${encapsulatedCommand}")
+    log.debug("zwaveEvent(): CRC-16 Encapsulation Command received: ${cmd}")
+    def encapsulatedCommand = zwave.commandClass(cmd.commandClass)?.command(cmd.command)?.parse(cmd.data)
+    if (!encapsulatedCommand) {
+        log.warn("zwaveEvent(): Could not extract command from ${cmd}")
+    } else {
+        log.debug("zwaveEvent(): Extracted command ${encapsulatedCommand}")
         return zwaveEvent(encapsulatedCommand)
-	}
+    }
 }
 
 def zwaveEvent(physicalgraph.zwave.commands.basicv1.BasicReport cmd) {
-	dimmerEvents(cmd)
+    dimmerEvents(cmd)
 }
 
 def zwaveEvent(physicalgraph.zwave.commands.switchmultilevelv3.SwitchMultilevelReport cmd) {
-	dimmerEvents(cmd)
+    dimmerEvents(cmd)
 }
 
 def zwaveEvent(physicalgraph.zwave.commands.switchmultilevelv3.SwitchMultilevelSet cmd) {
-	dimmerEvents(cmd)
+    dimmerEvents(cmd)
 }
 
 private dimmerEvents(physicalgraph.zwave.Command cmd) {
-	def value = (cmd.value ? "on" : "off")
-	def result = [createEvent(name: "switch", value: value, type: "physical")]
-	if (cmd.value && cmd.value <= 100) {
-		result << createEvent(name: "level", value: cmd.value, unit: "%", type: "physical")
-	}
-	return result
+    def value = (cmd.value ? "on" : "off")
+    def result = [createEvent(name: "switch", value: value, type: "physical")]
+    if (cmd.value && cmd.value <= 100) {
+        result << createEvent(name: "level", value: cmd.value, unit: "%", type: "physical")
+    }
+    return result
 }
 
 
 def zwaveEvent(physicalgraph.zwave.commands.basicv1.BasicSet cmd) {
-	if (cmd.value == 255) {
-    	createEvent(name: "button", value: "up_2x", data: [buttonNumber: 1], descriptionText: "Double-tap up (button 1 up_2x) on $device.displayName", isStateChange: true, type: "physical")
+    if (cmd.value == 255) {
+        createEvent(name: "button", value: "up_2x", data: [buttonNumber: 1], descriptionText: "Double-tap up (button 1 up_2x) on $device.displayName", isStateChange: true, type: "physical")
     }
-	else if (cmd.value == 0) {
-    	createEvent(name: "button", value: "down_2x", data: [buttonNumber: 1], descriptionText: "Double-tap down (button 1 down_2x) on $device.displayName", isStateChange: true, type: "physical")
+    else if (cmd.value == 0) {
+        createEvent(name: "button", value: "down_2x", data: [buttonNumber: 1], descriptionText: "Double-tap down (button 1 down_2x) on $device.displayName", isStateChange: true, type: "physical")
     }
 }
 
@@ -326,43 +266,42 @@ def zwaveEvent(physicalgraph.zwave.commands.centralscenev1.CentralSceneNotificat
     // single taps
     if(cmd.keyAttributes == 0){
         if(upordown == 1) {
-    	   createEvent(name: "button", value: "up", data: [buttonNumber: 1], descriptionText: "$device.displayName button up was single tapped", isStateChange: true)
-    	}
-    	else if(upordown == 2) {
+           createEvent(name: "button", value: "up", data: [buttonNumber: 1], descriptionText: "$device.displayName button up was single tapped", isStateChange: true)
+        }
+        else if(upordown == 2) {
            createEvent(name: "button", value: "down", data: [buttonNumber: 1], descriptionText: "$device.displayName button down was single tapped", isStateChange: true)
-    	}     
-    } 
+        }
+    }
     // button release
-    else if(cmd.keyAttributes == 1){
+    else if(cmd.keyAttributes == 1) {
         createEvent(name: "button", value: "holdRelease", data: [buttonNumber: 1], descriptionText: "$device.displayName button was released", isStateChange: true)    
     }
     // single tap hold
-    else if(cmd.keyAttributes == 2){
-  		if(upordown == 1) {
-    	    createEvent(name: "button", value: "up_hold", data: [buttonNumber: 1], descriptionText: "$device.displayName button up was held", isStateChange: true)
-    	}
-        
-    	else if(upordown == 2) {
+    else if(cmd.keyAttributes == 2) {
+        if(upordown == 1) {
+            createEvent(name: "button", value: "up_hold", data: [buttonNumber: 1], descriptionText: "$device.displayName button up was held", isStateChange: true)
+        }
+        else if(upordown == 2) {
             createEvent(name: "button", value: "down_hold", data: [buttonNumber: 1], descriptionText: "$device.displayName button down was held", isStateChange: true)
-    	} 
+        } 
     }
     // double taps
-    else if(cmd.keyAttributes == 3){
-    	if(upordown == 1) {
-    	    createEvent(name: "button", value: "up_2x", data: [buttonNumber: 1], descriptionText: "$device.displayName button up was double tapped", isStateChange: true)
-    	}
-    	else if(upordown == 2) {
+    else if(cmd.keyAttributes == 3) {
+        if(upordown == 1) {
+            createEvent(name: "button", value: "up_2x", data: [buttonNumber: 1], descriptionText: "$device.displayName button up was double tapped", isStateChange: true)
+        }
+        else if(upordown == 2) {
             createEvent(name: "button", value: "down_2x", data: [buttonNumber: 1], descriptionText: "$device.displayName button down was double tapped", isStateChange: true)
-    	}
+        }
     }
-    // triple taps 
-    else if(cmd.keyAttributes == 4){
-    	if(upordown == 1) {    
-    	    createEvent(name: "button", value: "up_3x", data: [buttonNumber: 1], descriptionText: "$device.displayName button up was triple tapped", isStateChange: true)
-    	}
-    	else if(upordown == 2) {
+    // triple taps
+    else if(cmd.keyAttributes == 4) {
+        if(upordown == 1) {    
+            createEvent(name: "button", value: "up_3x", data: [buttonNumber: 1], descriptionText: "$device.displayName button up was triple tapped", isStateChange: true)
+        }
+        else if(upordown == 2) {
             createEvent(name: "button", value: "down_3x", data: [buttonNumber: 1], descriptionText: "$device.displayName button down was triple tapped", isStateChange: true)
-    	}  
+        }
     }
     else {
         log.warn "${device.displayName} received unhandled command: ${cmd}"
@@ -370,23 +309,23 @@ def zwaveEvent(physicalgraph.zwave.commands.centralscenev1.CentralSceneNotificat
 }
 
 def zwaveEvent(physicalgraph.zwave.commands.associationv2.AssociationReport cmd) {
-	log.debug "---ASSOCIATION REPORT V2--- ${device.displayName} sent groupingIdentifier: ${cmd.groupingIdentifier} maxNodesSupported: ${cmd.maxNodesSupported} nodeId: ${cmd.nodeId} reportsToFollow: ${cmd.reportsToFollow}"
+    log.debug "---ASSOCIATION REPORT V2--- ${device.displayName} sent groupingIdentifier: ${cmd.groupingIdentifier} maxNodesSupported: ${cmd.maxNodesSupported} nodeId: ${cmd.nodeId} reportsToFollow: ${cmd.reportsToFollow}"
     state.group3 = "1,2"
     if (cmd.groupingIdentifier == 3) {
-    	if (cmd.nodeId.contains(zwaveHubNodeId)) {
-        	createEvent(name: "numberOfButtons", value: 1, displayed: false)
+        if (cmd.nodeId.contains(zwaveHubNodeId)) {
+            createEvent(name: "numberOfButtons", value: 1, displayed: false)
         }
         else {
-        	sendEvent(name: "numberOfButtons", value: 0, displayed: false)
-			sendHubCommand(new physicalgraph.device.HubAction(zwave.associationV2.associationSet(groupingIdentifier: 3, nodeId: zwaveHubNodeId).format()))
-			sendHubCommand(new physicalgraph.device.HubAction(zwave.associationV2.associationGet(groupingIdentifier: 3).format()))
+            sendEvent(name: "numberOfButtons", value: 0, displayed: false)
+            sendHubCommand(new physicalgraph.device.HubAction(zwave.associationV2.associationSet(groupingIdentifier: 3, nodeId: zwaveHubNodeId).format()))
+            sendHubCommand(new physicalgraph.device.HubAction(zwave.associationV2.associationGet(groupingIdentifier: 3).format()))
         }
     }
 }
 
 def zwaveEvent(physicalgraph.zwave.commands.configurationv2.ConfigurationReport cmd) {
     log.debug "---CONFIGURATION REPORT V2--- ${device.displayName} sent ${cmd}"
-	def name = ""
+    def name = ""
     def value = ""
     def reportValue = cmd.scaledConfigurationValue
     switch (cmd.parameterNumber) {
@@ -399,7 +338,7 @@ def zwaveEvent(physicalgraph.zwave.commands.configurationv2.ConfigurationReport 
             value = reportValue == 1 ? "true" : "false"
             break
         case 6:
-        	name = "ramp"
+            name = "ramp"
             value = reportValue == 1 ? "true" : "false"
             break
         case 7:
@@ -437,33 +376,33 @@ def zwaveEvent(physicalgraph.zwave.commands.configurationv2.ConfigurationReport 
         default:
             break
     }
-	createEvent([name: name, value: value, displayed: false])
+    createEvent([name: name, value: value, displayed: false])
 }
 
 def zwaveEvent(physicalgraph.zwave.commands.manufacturerspecificv2.ManufacturerSpecificReport cmd) {
     log.debug "---MANUFACTURER SPECIFIC REPORT V2---"
-	log.debug "manufacturerId:   ${cmd.manufacturerId}"
-	log.debug "manufacturerName: ${cmd.manufacturerName}"
+    log.debug "manufacturerId:   ${cmd.manufacturerId}"
+    log.debug "manufacturerName: ${cmd.manufacturerName}"
     state.manufacturer=cmd.manufacturerName
-	log.debug "productId:        ${cmd.productId}"
-	log.debug "productTypeId:    ${cmd.productTypeId}"
-	def msr = String.format("%04X-%04X-%04X", cmd.manufacturerId, cmd.productTypeId, cmd.productId)
-	updateDataValue("MSR", msr)	
+    log.debug "productId:        ${cmd.productId}"
+    log.debug "productTypeId:    ${cmd.productTypeId}"
+    def msr = String.format("%04X-%04X-%04X", cmd.manufacturerId, cmd.productTypeId, cmd.productId)
+    updateDataValue("MSR", msr)    
     sendEvent([descriptionText: "$device.displayName MSR: $msr", isStateChange: false])
 }
 
 def zwaveEvent(physicalgraph.zwave.commands.versionv1.VersionReport cmd) {
-	def fw = "${cmd.applicationVersion}.${cmd.applicationSubVersion}"
-	updateDataValue("fw", fw)
-	log.debug "---VERSION REPORT V1--- ${device.displayName} is running firmware version: $fw, Z-Wave version: ${cmd.zWaveProtocolVersion}.${cmd.zWaveProtocolSubVersion}"
+    def fw = "${cmd.applicationVersion}.${cmd.applicationSubVersion}"
+    updateDataValue("fw", fw)
+    log.debug "---VERSION REPORT V1--- ${device.displayName} is running firmware version: $fw, Z-Wave version: ${cmd.zWaveProtocolVersion}.${cmd.zWaveProtocolSubVersion}"
 }
 
 def zwaveEvent(physicalgraph.zwave.commands.switchbinaryv1.SwitchBinaryReport cmd) {
-	if (cmd.value == 255) {
-		createEvent(name: "switch", value: "on", type: "physical")
+    if (cmd.value == 255) {
+        createEvent(name: "switch", value: "on", type: "physical")
     }
-	else if (cmd.value == 0) {
-		createEvent(name: "switch", value: "off", type: "physical")
+    else if (cmd.value == 0) {
+        createEvent(name: "switch", value: "off", type: "physical")
     }
 }
 
@@ -496,49 +435,40 @@ def updated() {
     if (state.lastUpdated && now() <= state.lastUpdated + 3000) return
     state.lastUpdated = now()
 
-	def nodes = []
+    def nodes = []
     def cmds = []
     
     if (settings.zwaveSteps != null) {
-    
-    def zwaveSteps = Math.max(Math.min(zwaveSteps, 99), 1)
-   	sendHubCommand(new physicalgraph.device.HubAction(zwave.configurationV2.configurationSet(scaledConfigurationValue: zwaveSteps, parameterNumber: 7, size: 1).format()))
-    sendEvent(name: "zwaveSteps", value: zwaveSteps, displayed: false)
-  	    
+        def zwaveSteps = Math.max(Math.min(zwaveSteps, 99), 1)
+        sendHubCommand(new physicalgraph.device.HubAction(zwave.configurationV2.configurationSet(scaledConfigurationValue: zwaveSteps, parameterNumber: 7, size: 1).format()))
+        sendEvent(name: "zwaveSteps", value: zwaveSteps, displayed: false)
     }
-    
+
     if (settings.zwaveDelay != null) {
-    
-    def zwaveDelay = Math.max(Math.min(zwaveDelay, 255), 3)
-    sendHubCommand(new physicalgraph.device.HubAction(zwave.configurationV2.configurationSet(scaledConfigurationValue: zwaveDelay, parameterNumber: 8, size: 2).format()))
-    sendEvent(name: "zwaveDelay", value: zwaveDelay, displayed: false)
-    
+        def zwaveDelay = Math.max(Math.min(zwaveDelay, 255), 3)
+        sendHubCommand(new physicalgraph.device.HubAction(zwave.configurationV2.configurationSet(scaledConfigurationValue: zwaveDelay, parameterNumber: 8, size: 2).format()))
+        sendEvent(name: "zwaveDelay", value: zwaveDelay, displayed: false)
     }
-    
+
     if (settings.manualSteps != null) {
-    
-    def manualSteps = Math.max(Math.min(manualSteps, 99), 1)
-    sendHubCommand(new physicalgraph.device.HubAction(zwave.configurationV2.configurationSet(scaledConfigurationValue: manualSteps, parameterNumber: 9, size: 1).format()))
-    sendEvent(name: "manualSteps", value: manualSteps, displayed: false)
-    
+        def manualSteps = Math.max(Math.min(manualSteps, 99), 1)
+        sendHubCommand(new physicalgraph.device.HubAction(zwave.configurationV2.configurationSet(scaledConfigurationValue: manualSteps, parameterNumber: 9, size: 1).format()))
+        sendEvent(name: "manualSteps", value: manualSteps, displayed: false)
     }
-    
+
     if (settings.manualDelay != null) {
-    
-    def manualDelay = Math.max(Math.min(manualDelay, 255), 1)
-    sendHubCommand(new physicalgraph.device.HubAction(zwave.configurationV2.configurationSet(scaledConfigurationValue: manualDelay, parameterNumber: 10, size: 2).format()))
-    sendEvent(name: "manualDelay", value: manualDelay, displayed: false)
-    
+        def manualDelay = Math.max(Math.min(manualDelay, 255), 1)
+        sendHubCommand(new physicalgraph.device.HubAction(zwave.configurationV2.configurationSet(scaledConfigurationValue: manualDelay, parameterNumber: 10, size: 2).format()))
+        sendEvent(name: "manualDelay", value: manualDelay, displayed: false)
     }
-    
+
     if (settings.minimumDim != null) {
-	def minimumDim = Math.max(Math.min(minimumDim, 99), 1)
-	sendHubCommand(new physicalgraph.device.HubAction(zwave.configurationV2.configurationSet(scaledConfigurationValue: minimumDim, parameterNumber: 20, size: 1).format()))
-	sendEvent(name: "minimumDim", value: minimumDim, displayed: false)  
+        def minimumDim = Math.max(Math.min(minimumDim, 99), 1)
+        sendHubCommand(new physicalgraph.device.HubAction(zwave.configurationV2.configurationSet(scaledConfigurationValue: minimumDim, parameterNumber: 20, size: 1).format()))
+        sendEvent(name: "minimumDim", value: minimumDim, displayed: false)
     }
-    
-         
-	if (settings.requestedGroup2 != state.currentGroup2) {
+
+    if (settings.requestedGroup2 != state.currentGroup2) {
         nodes = parseAssocGroupList(settings.requestedGroup2, 2)
         cmds << zwave.associationV2.associationRemove(groupingIdentifier: 2, nodeId: [])
         cmds << zwave.associationV2.associationSet(groupingIdentifier: 2, nodeId: nodes)
@@ -555,177 +485,176 @@ def updated() {
     }
   
     switch (ledIndicator) {
-		case "on":
-			indicatorWhenOn()
-			break
-		case "off":
-			indicatorWhenOff()
-			break
-		case "never":
-			indicatorNever()
-			break
-		default:
-			indicatorWhenOff()
-			break
-	}
+        case "on":
+            indicatorWhenOn()
+            break
+        case "off":
+            indicatorWhenOff()
+            break
+        case "never":
+            indicatorNever()
+            break
+        default:
+            indicatorWhenOff()
+            break
+    }
     
     switch (invertSwitch) {
-    	case "false":
-        	notInverted()
+        case "false":
+            notInverted()
             break
         case "true":
-        	inverted()
+            inverted()
             break
         default:
-        	notInverted()
+            notInverted()
             break
-	}      
+    }      
     
     switch (switchMode) {
-    	case "false":
-        	modeDimmer()
+        case "false":
+            modeDimmer()
             break
         case "true":
-        	modeSwitch()
+            modeSwitch()
             break
         default:
-        	modeDimmer()
+            modeDimmer()
             break
-	}    
+    }    
     
     switch (ramp) {
-		case "false":
-			setNoRamp()
-			break
-		case "true":
-			setRamp()
-			break
-		default:
-			setNoRamp()
-			break
-	}
+        case "false":
+            setNoRamp()
+            break
+        case "true":
+            setRamp()
+            break
+        default:
+            setNoRamp()
+            break
+    }
  
-	sendEvent(name: "numberOfButtons", value: 1, displayed: false)
+    sendEvent(name: "numberOfButtons", value: 1, displayed: false)
     sendEvent(name: "supportedButtonValues", value:JsonOutput.toJson(["up","down","up_hold","down_hold","up_2x","down_2x","up_3x","down_3x"]), displayed:false)
-	
-	sendHubCommand(cmds.collect{ new physicalgraph.device.HubAction(it.format()) }, 500)
-   
-   log.debug "---Preferences Updated--- ${device.displayName} sent ${cmds}"
-   
-   }
+
+    sendHubCommand(cmds.collect{ new physicalgraph.device.HubAction(it.format()) }, 500)
+
+    log.debug "---Preferences Updated--- ${device.displayName} sent ${cmds}"
+}
 
 def zwaveEvent(physicalgraph.zwave.commands.configurationv1.ConfigurationReport cmd) {
-	def value = "when off"
-	if (cmd.configurationValue[0] == 1) {value = "when on"}
-	if (cmd.configurationValue[0] == 2) {value = "never"}
-	[name: "indicatorStatus", value: value, displayed: false]
+    def value = "when off"
+    if (cmd.configurationValue[0] == 1) {value = "when on"}
+    if (cmd.configurationValue[0] == 2) {value = "never"}
+    [name: "indicatorStatus", value: value, displayed: false]
 }
 
 void indicatorWhenOn() {
-	sendEvent(name: "indicatorStatus", value: "when on", displayed: false)
-	sendHubCommand(new physicalgraph.device.HubAction(zwave.configurationV1.configurationSet(configurationValue: [1], parameterNumber: 3, size: 1).format()))
+    sendEvent(name: "indicatorStatus", value: "when on", displayed: false)
+    sendHubCommand(new physicalgraph.device.HubAction(zwave.configurationV1.configurationSet(configurationValue: [1], parameterNumber: 3, size: 1).format()))
 }
 
 void indicatorWhenOff() {
-	sendEvent(name: "indicatorStatus", value: "when off", displayed: false)
-	sendHubCommand(new physicalgraph.device.HubAction(zwave.configurationV1.configurationSet(configurationValue: [0], parameterNumber: 3, size: 1).format()))
+    sendEvent(name: "indicatorStatus", value: "when off", displayed: false)
+    sendHubCommand(new physicalgraph.device.HubAction(zwave.configurationV1.configurationSet(configurationValue: [0], parameterNumber: 3, size: 1).format()))
 }
 
 void indicatorNever() {
-	sendEvent(name: "indicatorStatus", value: "never", displayed: false)
-	sendHubCommand(new physicalgraph.device.HubAction(zwave.configurationV1.configurationSet(configurationValue: [2], parameterNumber: 3, size: 1).format()))
+    sendEvent(name: "indicatorStatus", value: "never", displayed: false)
+    sendHubCommand(new physicalgraph.device.HubAction(zwave.configurationV1.configurationSet(configurationValue: [2], parameterNumber: 3, size: 1).format()))
 }
 
 void inverted() {
-	sendEvent(name: "inverted", value: "inverted", display: false)
+    sendEvent(name: "inverted", value: "inverted", display: false)
     sendHubCommand(new physicalgraph.device.HubAction(zwave.configurationV2.configurationSet(configurationValue: [1], parameterNumber: 4, size: 1).format()))
-	}
+}
 
 void notInverted() {
-	sendEvent(name: "inverted", value: "not inverted", display: false)
+    sendEvent(name: "inverted", value: "not inverted", display: false)
     sendHubCommand(new physicalgraph.device.HubAction(zwave.configurationV2.configurationSet(configurationValue: [0], parameterNumber: 4, size: 1).format()))
 }
 
 void modeDimmer() {
-	sendEvent(name: "switchMode", value: "modeDimmer", display: false)
+    sendEvent(name: "switchMode", value: "modeDimmer", display: false)
     sendHubCommand(new physicalgraph.device.HubAction(zwave.configurationV2.configurationSet(configurationValue: [0], parameterNumber: 16, size: 1).format()))
 }
 
 void modeSwitch() {
-	sendEvent(name: "switchMode", value: "modeSwitch", display: false)
+    sendEvent(name: "switchMode", value: "modeSwitch", display: false)
     sendHubCommand(new physicalgraph.device.HubAction(zwave.configurationV2.configurationSet(configurationValue: [1], parameterNumber: 16, size: 1).format()))
 }
 
 void setNoRamp() {
-	sendEvent(name: "ramp", value: "instant", display: false)
-	sendHubCommand(new physicalgraph.device.HubAction(zwave.configurationV2.configurationSet(configurationValue: [0], parameterNumber: 6, size: 1).format()))
+    sendEvent(name: "ramp", value: "instant", display: false)
+    sendHubCommand(new physicalgraph.device.HubAction(zwave.configurationV2.configurationSet(configurationValue: [0], parameterNumber: 6, size: 1).format()))
 }
 
 void setRamp() {
-	sendEvent(name: "ramp", value: "ramp", display: false)
-	sendHubCommand(new physicalgraph.device.HubAction(zwave.configurationV2.configurationSet(configurationValue: [1], parameterNumber: 6, size: 1).format()))
+    sendEvent(name: "ramp", value: "ramp", display: false)
+    sendHubCommand(new physicalgraph.device.HubAction(zwave.configurationV2.configurationSet(configurationValue: [1], parameterNumber: 6, size: 1).format()))
 }
 
 def doubleUp() {
-	sendEvent(name: "button", value: "up_2x", data: [buttonNumber: 1], descriptionText: "Double-tap up (button 1 up_2x) on $device.displayName", isStateChange: true, type: "digital")
+    sendEvent(name: "button", value: "up_2x", data: [buttonNumber: 1], descriptionText: "Double-tap up (button 1 up_2x) on $device.displayName", isStateChange: true, type: "digital")
 }
 
 def doubleDown() {
-	sendEvent(name: "button", value: "down_2x", data: [buttonNumber: 1], descriptionText: "Double-tap down (button 1 down_2x) on $device.displayName", isStateChange: true, type: "digital")
+    sendEvent(name: "button", value: "down_2x", data: [buttonNumber: 1], descriptionText: "Double-tap down (button 1 down_2x) on $device.displayName", isStateChange: true, type: "digital")
 }
 
 def set(steps) {
-	steps = Math.max(Math.min(steps, 99), 1)
-	sendEvent(name: "zwaveSteps", value: steps, displayed: false)	
-	zwave.configurationV2.configurationSet(scaledConfigurationValue: steps, parameterNumber: 7, size: 1).format()
+    steps = Math.max(Math.min(steps, 99), 1)
+    sendEvent(name: "zwaveSteps", value: steps, displayed: false)    
+    zwave.configurationV2.configurationSet(scaledConfigurationValue: steps, parameterNumber: 7, size: 1).format()
 }
 
 def setZwaveDelay(delay) {
-	delay = Math.max(Math.min(delay, 255), 3)
-	sendEvent(name: "zwaveDelay", value: delay, displayed: false)
-	sendHubCommand(new physicalgraph.device.HubAction(zwave.configurationV2.configurationSet(scaledConfigurationValue: delay, parameterNumber: 8, size: 2).format()))
+    delay = Math.max(Math.min(delay, 255), 3)
+    sendEvent(name: "zwaveDelay", value: delay, displayed: false)
+    sendHubCommand(new physicalgraph.device.HubAction(zwave.configurationV2.configurationSet(scaledConfigurationValue: delay, parameterNumber: 8, size: 2).format()))
 }
 
 def setManualSteps(steps) {
-	steps = Math.max(Math.min(steps, 99), 1)
-	sendEvent(name: "manualSteps", value: steps, displayed: false)	
-	zwave.configurationV2.configurationSet(scaledConfigurationValue: steps, parameterNumber: 9, size: 1).format()
+    steps = Math.max(Math.min(steps, 99), 1)
+    sendEvent(name: "manualSteps", value: steps, displayed: false)    
+    zwave.configurationV2.configurationSet(scaledConfigurationValue: steps, parameterNumber: 9, size: 1).format()
 }
 
 def setManualDelay(delay) {
-	delay = Math.max(Math.min(delay, 255), 1)
-	sendEvent(name: "manualDelay", value: delay, displayed: false)
-	zwave.configurationV2.configurationSet(scaledConfigurationValue: delay, parameterNumber: 10, size: 2).format()
+    delay = Math.max(Math.min(delay, 255), 1)
+    sendEvent(name: "manualDelay", value: delay, displayed: false)
+    zwave.configurationV2.configurationSet(scaledConfigurationValue: delay, parameterNumber: 10, size: 2).format()
 }
 
 def setAllSteps(steps) {
-	steps = Math.max(Math.min(steps, 99), 1)
-	sendEvent(name: "allSteps", value: steps, displayed: false)	
-	zwave.configurationV2.configurationSet(scaledConfigurationValue: steps, parameterNumber: 11, size: 1).format()
+    steps = Math.max(Math.min(steps, 99), 1)
+    sendEvent(name: "allSteps", value: steps, displayed: false)    
+    zwave.configurationV2.configurationSet(scaledConfigurationValue: steps, parameterNumber: 11, size: 1).format()
 }
 
 def setAllDelay(delay) {
-	delay = Math.max(Math.min(delay, 255), 1)
-	sendEvent(name: "allDelay", value: delay, displayed: false)
-	zwave.configurationV2.configurationSet(scaledConfigurationValue: delay, parameterNumber: 12, size: 2).format()
+    delay = Math.max(Math.min(delay, 255), 1)
+    sendEvent(name: "allDelay", value: delay, displayed: false)
+    zwave.configurationV2.configurationSet(scaledConfigurationValue: delay, parameterNumber: 12, size: 2).format()
 }
 
 def poll() {
-	def cmds = []
+    def cmds = []
     cmds << zwave.switchMultilevelV2.switchMultilevelGet().format()
-	if (getDataValue("MSR") == null) {
-		cmds << zwave.manufacturerSpecificV1.manufacturerSpecificGet().format()
-	}
-	delayBetween(cmds,500)
+    if (getDataValue("MSR") == null) {
+        cmds << zwave.manufacturerSpecificV1.manufacturerSpecificGet().format()
+    }
+    delayBetween(cmds,500)
 }
 
 def ping() {
-	refresh()
+    refresh()
 }
 
 def refresh() {
-	def cmds = []
-	cmds << zwave.switchMultilevelV2.switchMultilevelGet().format()
+    def cmds = []
+    cmds << zwave.switchMultilevelV2.switchMultilevelGet().format()
     cmds << zwave.configurationV2.configurationGet(parameterNumber: 3).format()
     cmds << zwave.configurationV2.configurationGet(parameterNumber: 4).format()
     cmds << zwave.configurationV2.configurationGet(parameterNumber: 7).format()
@@ -737,16 +666,16 @@ def refresh() {
     cmds << zwave.configurationV2.configurationGet(parameterNumber: 16).format()
     cmds << zwave.configurationV2.configurationGet(parameterNumber: 20).format()
     cmds << zwave.associationV2.associationGet(groupingIdentifier: 3).format()
-	if (getDataValue("MSR") == null) {
-		cmds << zwave.manufacturerSpecificV1.manufacturerSpecificGet().format()
-	}
-	delayBetween(cmds,600)
+    if (getDataValue("MSR") == null) {
+        cmds << zwave.manufacturerSpecificV1.manufacturerSpecificGet().format()
+    }
+    delayBetween(cmds,600)
 }
 
 def on() {
-	def cmds = []
+    def cmds = []
     cmds << zwave.basicV1.basicSet(value: 0xFF).format()
-   	cmds << zwave.switchMultilevelV2.switchMultilevelGet().format()
+    cmds << zwave.switchMultilevelV2.switchMultilevelGet().format()
     def numberofzsteps = (100 / (device.currentValue("zwaveSteps")))
     def calcdelay = (numberofzsteps * (10*(device.currentValue("zwaveDelay")))).longValue()
     def delay = Math.max(Math.min(calcdelay, 10000), 1000)
@@ -754,9 +683,9 @@ def on() {
 }
 
 def off() {
-	def cmds = []
+    def cmds = []
     cmds << zwave.basicV1.basicSet(value: 0x00).format()
-   	cmds << zwave.switchMultilevelV2.switchMultilevelGet().format()
+    cmds << zwave.switchMultilevelV2.switchMultilevelGet().format()
     def numberofzsteps = (100 / (device.currentValue("zwaveSteps")))
     def calcdelay = (numberofzsteps * (10*(device.currentValue("zwaveDelay")))).longValue()
     def delay = Math.max(Math.min(calcdelay, 10000), 1000)
@@ -764,68 +693,67 @@ def off() {
 }
 
 def setLevel(value) {
-	//revised to account for minimumdim
-	
+    //revised to account for minimumdim
+    
     def valueaux = value as Integer
-	def level = Math.max(Math.min(valueaux, 99), 0)
+    def level = Math.max(Math.min(valueaux, 99), 0)
     def curmindim = (device.currentValue("minimumDim"))
     
     if (curmindim == null) {
-    	curmindim = 1
+        curmindim = 1
     }
     
     // adjust levels below minimum dim to the minimum dim level except for 0
     if ((level < curmindim) && (level != 0)) {
-    	log.debug "${device.displayName} - level set command of $level below minimum dim of $curmindim, adjusting level to minimum dim"
-        level = curmindim       
+        log.debug "${device.displayName} - level set command of $level below minimum dim of $curmindim, adjusting level to minimum dim"
+        level = curmindim
     }
     
     if (level > 0) {
-	    sendEvent(name: "switch", value: "on")
-	 } else {
-		sendEvent(name: "switch", value: "off")
-	 }
+        sendEvent(name: "switch", value: "on")
+     } else {
+        sendEvent(name: "switch", value: "off")
+     }
   
      def numberofzsteps = (100 / (device.currentValue("zwaveSteps")))
      def calcdelay = (numberofzsteps * (level / 100 ) * (10*(device.currentValue("zwaveDelay")))).longValue()
      def delay = Math.max(Math.min(calcdelay, 10000), 5000)
      
      if (device.currentValue("ramp") == "instant") {
-        delay = 1000       
+        delay = 1000
     }
      
      delayBetween([zwave.basicV1.basicSet(value: level).format(), zwave.switchMultilevelV1.switchMultilevelGet().format()], delay)
- 
 }
 
 def setLevel(value, duration) {
-	log.debug "setLevel >> value: $value, duration: $duration"
-	def valueaux = value as Integer
-	def level = Math.max(Math.min(valueaux, 99), 0)
-	def dimmingDuration = duration < 128 ? duration : 128 + Math.round(duration / 60)
-	def getStatusDelay = duration < 128 ? (duration*1000)+2000 : (Math.round(duration / 60)*60*1000)+2000
-	delayBetween ([zwave.switchMultilevelV2.switchMultilevelSet(value: level, dimmingDuration: dimmingDuration).format(),
-				   zwave.switchMultilevelV1.switchMultilevelGet().format()], getStatusDelay)
+    log.debug "setLevel >> value: $value, duration: $duration"
+    def valueaux = value as Integer
+    def level = Math.max(Math.min(valueaux, 99), 0)
+    def dimmingDuration = duration < 128 ? duration : 128 + Math.round(duration / 60)
+    def getStatusDelay = duration < 128 ? (duration*1000)+2000 : (Math.round(duration / 60)*60*1000)+2000
+    delayBetween ([zwave.switchMultilevelV2.switchMultilevelSet(value: level, dimmingDuration: dimmingDuration).format(),
+                   zwave.switchMultilevelV1.switchMultilevelGet().format()], getStatusDelay)
 }
 
 def levelUp() {
     int nextLevel = device.currentValue("level") + 10
     if( nextLevel > 100) {
-    	nextLevel = 100
+        nextLevel = 100
     }
     setLevel(nextLevel)
 }
-	
+    
 def levelDown() {
     int nextLevel = device.currentValue("level") - 10
     if( nextLevel < 0) {
-    	nextLevel = 0
+        nextLevel = 0
     }
     if (nextLevel == 0) {
-    	off()
+        off()
     }
     else {
-	    setLevel(nextLevel)
+        setLevel(nextLevel)
     }
 }
 
@@ -846,7 +774,7 @@ private parseAssocGroupList(list, group) {
             else if (node.matches("\\p{XDigit}+")) {
                 def nodeId = Integer.parseInt(node,16)
                 if (nodeId == zwaveHubNodeId) {
-                	log.warn "Association Group ${group}: Adding the hub as an association is not allowed (it would break double-tap)."
+                    log.warn "Association Group ${group}: Adding the hub as an association is not allowed (it would break double-tap)."
                 }
                 else if ( (nodeId > 0) & (nodeId < 256) ) {
                     nodes << nodeId
@@ -861,6 +789,5 @@ private parseAssocGroupList(list, group) {
             }
         }
     }
-    
     return nodes
 }
